@@ -28,9 +28,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('finan_authenticated');
+
+    // Clean browser caches if Cache API is available
+    if ('caches' in window) {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      } catch (e) {
+        console.warn('Error clearing caches on logout:', e);
+      }
+    }
+
+    // Hard reload page to clear memory state and fetch fresh assets
+    window.location.reload();
   };
 
   const updatePin = (newPin) => {

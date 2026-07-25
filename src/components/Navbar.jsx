@@ -1,7 +1,7 @@
 import React from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, Bell, Plus, Lock, RefreshCw, Smartphone, Menu } from 'lucide-react';
+import { Wallet, Bell, Plus, LogOut, RefreshCw, Smartphone, Menu } from 'lucide-react';
 import { formatCurrencyShort } from '../utils/currency';
 
 export const Navbar = ({ onToggleSidebar }) => {
@@ -102,13 +102,14 @@ export const Navbar = ({ onToggleSidebar }) => {
           )}
         </button>
 
-        {/* Lock / Logout */}
+        {/* Cerrar Sesión / Logout (Limpiar Caché) */}
         <button
           onClick={logout}
-          className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition"
-          title="Bloquear sesión privada"
+          className="flex items-center space-x-1.5 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition text-xs font-bold"
+          title="Cerrar Sesión (Limpiar Caché y Actualizar Datos)"
         >
-          <Lock className="w-5 h-5" />
+          <LogOut className="w-5 h-5 text-rose-400" />
+          <span className="hidden xl:inline">Salir</span>
         </button>
       </div>
     </header>
