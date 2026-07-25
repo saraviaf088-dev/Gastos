@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // ===== CONFIGURACION SUPABASE =====
 const SUPABASE_URL = 'https://xsvkbqdbwtvbotkickin.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_ePdWBjUTqyf77peOuKP7zA_wghj9jzJ';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzdmticWRid3R2Ym90a2lja2luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5NDIzOTcsImV4cCI6MjEwMDUxODM5N30.5CqY4WQiIGzZq0WhJkJVxH3MOGnX3j6rtz_F_FGCWRQ';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
