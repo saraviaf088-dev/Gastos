@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { PieChart, Edit3, Plus, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { formatCurrency, CURRENCY_SYMBOL } from '../../utils/currency';
 
 export const BudgetManager = () => {
   const { categories, updateCategoryBudget, addCategory, deleteCategory, financials } = useFinance();
@@ -65,18 +66,18 @@ export const BudgetManager = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="glass-panel p-4 sm:p-5 rounded-2xl">
           <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase">Presupuesto Asignado</span>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">${totalAssignedBudget.toLocaleString()}</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">{formatCurrency(totalAssignedBudget)}</div>
         </div>
         <div className="glass-panel p-4 sm:p-5 rounded-2xl">
           <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase">Gasto Real Consumido</span>
-          <div className="text-xl sm:text-2xl font-extrabold text-rose-400 mt-1">${totalExpense.toLocaleString()}</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-rose-400 mt-1">{formatCurrency(totalExpense)}</div>
         </div>
         <div className="glass-panel p-4 sm:p-5 rounded-2xl">
           <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase">Margen Restante Global</span>
           <div className={`text-xl sm:text-2xl font-extrabold mt-1 ${
             totalAssignedBudget - totalExpense >= 0 ? 'text-emerald-400' : 'text-rose-400'
           }`}>
-            ${(totalAssignedBudget - totalExpense).toLocaleString()}
+            {formatCurrency(totalAssignedBudget - totalExpense)}
           </div>
         </div>
       </div>
@@ -142,7 +143,7 @@ export const BudgetManager = () => {
                     value={newLimitInput}
                     onChange={e => setNewLimitInput(e.target.value)}
                     className="w-full bg-transparent text-white text-sm font-bold focus:outline-none px-2"
-                    placeholder="Nuevo límite $"
+                    placeholder={`Nuevo límite ${CURRENCY_SYMBOL}`}
                     autoFocus
                   />
                   <button
@@ -160,8 +161,8 @@ export const BudgetManager = () => {
                 </div>
               ) : (
                 <div className="flex justify-between items-baseline my-2 text-xs">
-                  <span className="text-slate-400">Consumido: <strong className="text-white">${cat.spent.toLocaleString()}</strong></span>
-                  <span className="text-slate-400">Límite: <strong className="text-emerald-400">${cat.limit.toLocaleString()}</strong></span>
+                  <span className="text-slate-400">Consumido: <strong className="text-white">{formatCurrency(cat.spent)}</strong></span>
+                  <span className="text-slate-400">Límite: <strong className="text-emerald-400">{formatCurrency(cat.limit)}</strong></span>
                 </div>
               )}
 
@@ -178,9 +179,9 @@ export const BudgetManager = () => {
               <div className="flex justify-between items-center text-[11px] text-slate-400 mt-2">
                 <span>{cat.percentage.toFixed(1)}% del presupuesto</span>
                 {cat.remaining > 0 ? (
-                  <span className="text-emerald-400">Quedan ${cat.remaining.toLocaleString()}</span>
+                  <span className="text-emerald-400">Quedan {formatCurrency(cat.remaining)}</span>
                 ) : (
-                  <span className="text-rose-400 font-bold">Sobregasto: +${cat.overspendAmount.toLocaleString()}</span>
+                  <span className="text-rose-400 font-bold">Sobregasto: +{formatCurrency(cat.overspendAmount)}</span>
                 )}
               </div>
             </div>
@@ -232,7 +233,7 @@ export const BudgetManager = () => {
 
               {catType === 'expense' && (
                 <div>
-                  <label className="block text-slate-400 mb-1">Presupuesto Límite Mensual ($)</label>
+                  <label className="block text-slate-400 mb-1">Presupuesto Límite Mensual ({CURRENCY_SYMBOL})</label>
                   <input
                     type="number"
                     value={catLimit}

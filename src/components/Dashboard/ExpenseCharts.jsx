@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { useFinance } from '../../context/FinanceContext';
+import { formatCurrency, CURRENCY_SYMBOL } from '../../utils/currency';
 
 ChartJS.register(
   ArcElement,
@@ -28,7 +29,7 @@ ChartJS.register(
 
 export const ExpenseCharts = () => {
   const { financials, categories } = useFinance();
-  const { expenseByCategory, totalIncome, totalExpense } = financials;
+  const { expenseByCategory, totalIncome, totalExpense, initialBalance } = financials;
 
   // Doughnut Chart Data (Expenses by Category)
   const categoryNames = Object.keys(expenseByCategory);
@@ -69,7 +70,7 @@ export const ExpenseCharts = () => {
         callbacks: {
           label: (context) => {
             const val = context.raw || 0;
-            return ` $${val.toLocaleString()}`;
+            return ` ${CURRENCY_SYMBOL} ${val.toLocaleString()}`;
           }
         }
       }
@@ -78,15 +79,15 @@ export const ExpenseCharts = () => {
 
   // Bar Chart Data (Comparison)
   const barData = {
-    labels: ['Ingresos Totales', 'Gastos Totales', 'Balance Neto'],
+    labels: ['Saldo Inicial', 'Ingresos Totales', 'Gastos Totales', 'Balance Neto'],
     datasets: [
       {
-        label: 'Monto ($)',
-        data: [totalIncome, totalExpense, Math.max(0, financials.netBalance)],
-        backgroundColor: ['rgba(16, 185, 129, 0.85)', 'rgba(239, 68, 68, 0.85)', 'rgba(20, 184, 166, 0.85)'],
+        label: 'Monto',
+        data: [initialBalance, totalIncome, totalExpense, Math.max(0, financials.netBalance)],
+        backgroundColor: ['rgba(14, 165, 233, 0.85)', 'rgba(16, 185, 129, 0.85)', 'rgba(239, 68, 68, 0.85)', 'rgba(20, 184, 166, 0.85)'],
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: ['#10b981', '#ef4444', '#14b8a6']
+        borderColor: ['#0ea5e9', '#10b981', '#ef4444', '#14b8a6']
       }
     ]
   };
@@ -98,7 +99,7 @@ export const ExpenseCharts = () => {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (context) => ` $${(context.raw || 0).toLocaleString()}`
+          label: (context) => ` ${CURRENCY_SYMBOL} ${(context.raw || 0).toLocaleString()}`
         }
       }
     },
@@ -120,7 +121,7 @@ export const ExpenseCharts = () => {
       <div className="glass-panel rounded-2xl p-4 sm:p-6 flex flex-col justify-between">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-bold text-white">Distribución de Gastos por Categoría</h3>
-          <span className="text-xs text-slate-400">Total: ${totalExpense.toLocaleString()}</span>
+          <span className="text-xs text-slate-400">Total: {formatCurrency(totalExpense)}</span>
         </div>
         <div className="h-64 relative flex items-center justify-center">
           <Doughnut data={doughnutData} options={doughnutOptions} />

@@ -2,6 +2,7 @@ import React from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
 import { Wallet, Bell, Plus, Lock, LogOut, ShieldCheck, FileCheck, Menu } from 'lucide-react';
+import { formatCurrencyShort } from '../utils/currency';
 
 export const Navbar = ({ onToggleSidebar }) => {
   const { financials, activeTab, setActiveTab, openQuickAction } = useFinance();
@@ -39,16 +40,16 @@ export const Navbar = ({ onToggleSidebar }) => {
       <div className="hidden md:flex items-center space-x-6 text-sm">
         <div className="flex items-center space-x-2">
           <span className="text-slate-400">Ingresos:</span>
-          <span className="font-bold text-emerald-400">${financials.totalIncome.toLocaleString()}</span>
+          <span className="font-bold text-emerald-400">{formatCurrencyShort(financials.totalIncome)}</span>
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-slate-400">Gastos:</span>
-          <span className="font-bold text-rose-400">${financials.totalExpense.toLocaleString()}</span>
+          <span className="font-bold text-rose-400">{formatCurrencyShort(financials.totalExpense)}</span>
         </div>
         <div className="flex items-center space-x-2 bg-slate-900/80 px-3 py-1 rounded-lg border border-slate-800">
           <span className="text-slate-400">Balance:</span>
           <span className={`font-extrabold ${financials.netBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            ${financials.netBalance.toLocaleString()}
+            {formatCurrencyShort(financials.netBalance)}
           </span>
         </div>
       </div>

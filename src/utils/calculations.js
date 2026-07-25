@@ -1,10 +1,11 @@
 // Calculation Utilities for Financial Analysis & Optimization Engine
+import { CURRENCY_SYMBOL } from './currency';
 
-export const calculateFinancials = (incomes = [], expenses = [], categories = []) => {
+export const calculateFinancials = (incomes = [], expenses = [], categories = [], initialBalance = 0) => {
   // Current month filter or total
   const totalIncome = incomes.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
   const totalExpense = expenses.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
-  const netBalance = totalIncome - totalExpense;
+  const netBalance = initialBalance + totalIncome - totalExpense;
   const savingsRate = totalIncome > 0 ? Math.max(0, ((netBalance / totalIncome) * 100)) : 0;
 
   // Breakdown by Category
@@ -75,7 +76,7 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
         id: `alert-exc-${cat.categoryId}`,
         type: 'CRITICAL',
         title: `¡Presupuesto Excedido en ${cat.categoryName}!`,
-        message: `Has superado el límite fijado ($${cat.limit.toLocaleString()}) con un total consumido de $${cat.spent.toLocaleString()} (+${cat.percentage.toFixed(0)}%).`,
+        message: `Has superado el límite fijado (${CURRENCY_SYMBOL} ${cat.limit.toLocaleString()}) con un total consumido de ${CURRENCY_SYMBOL} ${cat.spent.toLocaleString()} (+${cat.percentage.toFixed(0)}%).`,
         category: cat.categoryName,
         date: new Date().toLocaleDateString('es-ES')
       });
@@ -84,7 +85,7 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
         id: `alert-warn-${cat.categoryId}`,
         type: 'WARNING',
         title: `Alerta de Umbral en ${cat.categoryName}`,
-        message: `Has consumido el ${cat.percentage.toFixed(1)}% de tu presupuesto. Te quedan solo $${cat.remaining.toLocaleString()}.`,
+        message: `Has consumido el ${cat.percentage.toFixed(1)}% de tu presupuesto. Te quedan solo ${CURRENCY_SYMBOL} ${cat.remaining.toLocaleString()}.`,
         category: cat.categoryName,
         date: new Date().toLocaleDateString('es-ES')
       });
@@ -96,7 +97,7 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
       id: 'alert-ant-high',
       type: 'INFO',
       title: 'Detección de Gastos Hormiga Elevados',
-      message: `Tus pequeños gastos acumulados suman $${totalAntExpenseAmount.toLocaleString()} (${((totalAntExpenseAmount / totalExpense) * 100).toFixed(1)}% de tus gastos totales).`,
+      message: `Tus pequeños gastos acumulados suman ${CURRENCY_SYMBOL} ${totalAntExpenseAmount.toLocaleString()} (${((totalAntExpenseAmount / totalExpense) * 100).toFixed(1)}% de tus gastos totales).`,
       category: 'Gastos Hormiga',
       date: new Date().toLocaleDateString('es-ES')
     });
@@ -153,9 +154,9 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
       id: 'rec-1',
       impact: 'HIGH',
       title: `Optimizar gasto en ${topCat}`,
-      description: `Actualmente gastas $${topAmount.toLocaleString()} en esta categoría. Reduciendo un 20% ahorrarías $${(topAmount * 0.2).toFixed(0)}/mes ($${(topAmount * 0.2 * 12).toFixed(0)} al año).`,
+      description: `Actualmente gastas ${CURRENCY_SYMBOL} ${topAmount.toLocaleString()} en esta categoría. Reduciendo un 20% ahorrarías ${CURRENCY_SYMBOL} ${(topAmount * 0.2).toFixed(0)}/mes (${CURRENCY_SYMBOL} ${(topAmount * 0.2 * 12).toFixed(0)} al año).`,
       potentialMonthlySavings: topAmount * 0.2,
-      actionStep: `Establece un techo semanal de $${((topAmount * 0.8) / 4).toFixed(0)}.`
+      actionStep: `Establece un techo semanal de ${CURRENCY_SYMBOL} ${((topAmount * 0.8) / 4).toFixed(0)}.`
     });
   }
 
@@ -165,7 +166,7 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
       id: 'rec-2',
       impact: 'MEDIUM',
       title: 'Fuga de capital por Gastos Hormiga',
-      description: `Tienes $${totalAntExpenseAmount.toLocaleString()} registrados en micro-gastos (cafés, snacks, impulsos). Eliminando la mitad recuperas $${(totalAntExpenseAmount * 0.5).toFixed(0)}/mes.`,
+      description: `Tienes ${CURRENCY_SYMBOL} ${totalAntExpenseAmount.toLocaleString()} registrados en micro-gastos (cafés, snacks, impulsos). Eliminando la mitad recuperas ${CURRENCY_SYMBOL} ${(totalAntExpenseAmount * 0.5).toFixed(0)}/mes.`,
       potentialMonthlySavings: totalAntExpenseAmount * 0.5,
       actionStep: 'Prepara tus snacks/cafés en casa o fija una cuota semanal en efectivo estricta.'
     });
@@ -179,7 +180,7 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
         id: 'rec-3',
         impact: 'CRITICAL',
         title: 'Impulsar el Fondo de Reserva (Regla 20%)',
-        description: `Tu tasa actual de ahorro es del ${savingsRate.toFixed(1)}%. Para llegar a la meta óptima del 20% ($${targetSavings.toFixed(0)}), necesitas ajustar tu gasto global en $${gap.toFixed(0)}/mes.`,
+        description: `Tu tasa actual de ahorro es del ${savingsRate.toFixed(1)}%. Para llegar a la meta óptima del 20% (${CURRENCY_SYMBOL} ${targetSavings.toFixed(0)}), necesitas ajustar tu gasto global en ${CURRENCY_SYMBOL} ${gap.toFixed(0)}/mes.`,
         potentialMonthlySavings: gap,
         actionStep: 'Automatiza la transferencia del 20% de tu sueldo a una cuenta de ahorro el primer día de cobro.'
       });
@@ -187,6 +188,7 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
   }
 
   return {
+    initialBalance,
     totalIncome,
     totalExpense,
     netBalance,

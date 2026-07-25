@@ -8,8 +8,10 @@ import {
   Sparkles,
   AlertTriangle,
   Settings,
-  X
+  X,
+  Landmark
 } from 'lucide-react';
+import { formatCurrency } from '../utils/currency';
 
 export const Sidebar = ({ isOpen, onClose }) => {
   const { activeTab, setActiveTab, financials } = useFinance();
@@ -113,17 +115,29 @@ const SidebarContent = ({ menuItems, activeTab, onNavClick, financials, alertCou
         })}
       </nav>
 
-      {/* Mini Health Summary Widget at bottom of sidebar */}
-      <div className="mt-8 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-center">
-        <div className="text-xs text-slate-400 mb-1">Score de Salud Financiera</div>
-        <div className="text-2xl font-extrabold text-emerald-400">{financials.healthScore} / 100</div>
-        <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
-          <div
-            className={`h-full transition-all duration-500 ${
-              financials.healthScore >= 75 ? 'bg-emerald-500' : financials.healthScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'
-            }`}
-            style={{ width: `${financials.healthScore}%` }}
-          />
+      {/* Balance & Health Summary at bottom */}
+      <div className="mt-8 space-y-3">
+        {/* Initial Balance Widget */}
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-center">
+          <div className="flex items-center justify-center space-x-2 mb-1">
+            <Landmark className="w-3.5 h-3.5 text-sky-400" />
+            <div className="text-xs text-slate-400">Saldo Inicial</div>
+          </div>
+          <div className="text-lg font-extrabold text-sky-300">{formatCurrency(financials.initialBalance)}</div>
+        </div>
+
+        {/* Health Score Widget */}
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-center">
+          <div className="text-xs text-slate-400 mb-1">Score de Salud Financiera</div>
+          <div className="text-2xl font-extrabold text-emerald-400">{financials.healthScore} / 100</div>
+          <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-500 ${
+                financials.healthScore >= 75 ? 'bg-emerald-500' : financials.healthScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+              }`}
+              style={{ width: `${financials.healthScore}%` }}
+            />
+          </div>
         </div>
       </div>
     </>

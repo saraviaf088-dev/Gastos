@@ -6,7 +6,8 @@ const KEYS = {
   EXPENSES: 'finan_expenses',
   CATEGORIES: 'finan_categories',
   BUDGETS: 'finan_budgets',
-  SETTINGS: 'finan_settings'
+  SETTINGS: 'finan_settings',
+  INITIAL_BALANCE: 'finan_initial_balance'
 };
 
 // Default initial categories
@@ -179,6 +180,15 @@ export const saveStoredData = (key, data) => {
 
 export const getStoredPin = () => localStorage.getItem(KEYS.PIN) || '1234';
 export const setStoredPin = (newPin) => localStorage.setItem(KEYS.PIN, newPin);
+
+export const getStoredInitialBalance = () => {
+  const val = localStorage.getItem(KEYS.INITIAL_BALANCE);
+  return val !== null ? parseFloat(val) || 0 : 0;
+};
+
+export const setStoredInitialBalance = (amount) => {
+  localStorage.setItem(KEYS.INITIAL_BALANCE, parseFloat(amount) || 0);
+};
 
 export const clearAllData = () => {
   localStorage.removeItem(KEYS.INCOMES);

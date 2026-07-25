@@ -1,13 +1,32 @@
 import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, FileCheck, AlertOctagon } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, FileCheck, AlertOctagon, Landmark } from 'lucide-react';
+import { formatCurrency, formatCurrencyShort } from '../../utils/currency';
 
 export const SummaryCards = () => {
   const { financials, openQuickAction } = useFinance();
-  const { totalIncome, totalExpense, netBalance, savingsRate, reconciliationStats } = financials;
+  const { totalIncome, totalExpense, netBalance, savingsRate, reconciliationStats, initialBalance } = financials;
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      {/* Balance Inicial Card */}
+      <div className="glass-panel rounded-2xl p-3 sm:p-5 relative overflow-hidden group hover:border-sky-500/40 transition">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Saldo Inicial</span>
+          <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+            <Landmark className="w-5 h-5" />
+          </div>
+        </div>
+        <div className="mt-3">
+          <div className="text-2xl lg:text-3xl font-extrabold text-sky-300 tracking-tight">
+            {formatCurrency(initialBalance)}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">
+            Capital de partida
+          </p>
+        </div>
+      </div>
+
       {/* Ingresos Card */}
       <div className="glass-panel rounded-2xl p-3 sm:p-5 relative overflow-hidden group hover:border-emerald-500/40 transition">
         <div className="flex items-center justify-between">
@@ -18,7 +37,7 @@ export const SummaryCards = () => {
         </div>
         <div className="mt-3">
           <div className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
-            ${totalIncome.toLocaleString()}
+            {formatCurrency(totalIncome)}
           </div>
           <p className="text-xs text-emerald-400 mt-1 flex items-center space-x-1">
             <span>Control de flujo mensual activo</span>
@@ -36,10 +55,10 @@ export const SummaryCards = () => {
         </div>
         <div className="mt-3">
           <div className="text-2xl lg:text-3xl font-extrabold text-rose-400 tracking-tight">
-            ${totalExpense.toLocaleString()}
+            {formatCurrency(totalExpense)}
           </div>
           <div className="text-xs text-slate-400 mt-1 flex items-center justify-between">
-            <span>Gastos Hormiga: <strong className="text-amber-400">${financials.totalAntExpenseAmount}</strong></span>
+            <span>Gastos Hormiga: <strong className="text-amber-400">{formatCurrencyShort(financials.totalAntExpenseAmount)}</strong></span>
           </div>
         </div>
       </div>
@@ -58,32 +77,11 @@ export const SummaryCards = () => {
           <div className={`text-2xl lg:text-3xl font-extrabold tracking-tight ${
             netBalance >= 0 ? 'text-teal-300' : 'text-rose-400'
           }`}>
-            ${netBalance.toLocaleString()}
+            {formatCurrency(netBalance)}
           </div>
           <p className="text-xs text-slate-400 mt-1">
             {netBalance >= 0 ? 'Flujo de caja superavitario' : 'Atención: Gastos superan ingresos'}
           </p>
-        </div>
-      </div>
-
-      {/* Tasa de Ahorro / Comprobantes Card */}
-      <div className="glass-panel rounded-2xl p-3 sm:p-5 relative overflow-hidden group hover:border-indigo-500/40 transition">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Tasa de Ahorro</span>
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <PiggyBank className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="mt-3">
-          <div className="text-2xl lg:text-3xl font-extrabold text-indigo-300 tracking-tight">
-            {savingsRate.toFixed(1)}%
-          </div>
-          <div className="flex items-center justify-between text-xs text-slate-400 mt-1">
-            <span className="flex items-center space-x-1">
-              <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{reconciliationStats.reconciledCount} con adjunto</span>
-            </span>
-          </div>
         </div>
       </div>
     </div>

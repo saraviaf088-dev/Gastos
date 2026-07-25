@@ -3,15 +3,18 @@ import { useAuth } from '../../context/AuthContext';
 import { useFinance } from '../../context/FinanceContext';
 import { exportFullBackupJSON } from '../../utils/exportImport';
 import { clearAllData } from '../../utils/storage';
-import { KeyRound, ShieldCheck, Download, RefreshCw, Trash2, CheckCircle2, Lock } from 'lucide-react';
+import { KeyRound, ShieldCheck, Download, RefreshCw, Trash2, CheckCircle2, Lock, Landmark } from 'lucide-react';
+import { formatCurrency, CURRENCY_SYMBOL } from '../../utils/currency';
 
 export const SecuritySettings = () => {
   const { currentPin, updatePin } = useAuth();
-  const { incomes, expenses, categories } = useFinance();
+  const { incomes, expenses, categories, initialBalance, updateInitialBalance } = useFinance();
 
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [msg, setMsg] = useState(null);
+  const [balanceInput, setBalanceInput] = useState(initialBalance.toString());
+  const [balanceMsg, setBalanceMsg] = useState(null);
 
   const handlePinChangeSubmit = (e) => {
     e.preventDefault();
@@ -29,6 +32,17 @@ export const SecuritySettings = () => {
     }
   };
 
+  const handleBalanceSubmit = (e) => {
+    e.preventDefault();
+    const val = parseFloat(balanceInput);
+    if (isNaN(val) || val < 0) {
+      setBalanceMsg({ type: 'error', text: 'Ingresa un monto válido mayor o igual a 0.' });
+      return;
+    }
+    updateInitialBalance(val);
+    setBalanceMsg({ type: 'success', text: `Saldo inicial actualizado a ${formatCurrency(val)}.` });
+  };
+
   const handleResetData = () => {
     if (window.confirm('¿Estás seguro de restablecer todos tus datos? Se restaurarán los valores por defecto.')) {
       clearAllData();
@@ -44,8 +58,52 @@ export const SecuritySettings = () => {
           <span>Seguridad y Gestión de Datos</span>
         </h2>
         <p className="text-xs text-slate-400 mt-0.5">
-          Configura tus credenciales privadas de acceso y administra copias de respaldo de tu información.
+          Configura tus credenciales privadas de acceso, saldo inicial y administra copias de respaldo de tu información.
         </p>
+      </div>
+
+      {/* Initial Balance Section */}
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-sky-500/30 bg-sky-950/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0">
+              <Landmark className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Saldo Inicial (Capital de Partida)</h3>
+              <p className="text-xs text-slate-400">
+                Monto con el que inicias. Se sumará a tus ingresos para calcular tu balance neto actual: <strong className="text-sky-300">{formatCurrency(initialBalance)}</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleBalanceSubmit} className="mt-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+          <div className="flex-1">
+            <label className="block text-xs text-slate-400 mb-1">Monto inicial ({CURRENCY_SYMBOL})</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={balanceInput}
+              onChange={e => setBalanceInput(e.target.value)}
+              placeholder="Ej: 5000"
+              className="w-full bg-slate-900 border border-slate-700 focus:border-sky-500 text-white rounded-xl px-4 py-2.5 text-sm font-bold transition"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold text-xs transition whitespace-nowrap"
+          >
+            Guardar Saldo
+          </button>
+        </form>
+
+        {balanceMsg && (
+          <p className={`text-xs font-semibold mt-2 ${balanceMsg.type === 'success' ? 'text-sky-400' : 'text-rose-400'}`}>
+            {balanceMsg.text}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -109,7 +167,7 @@ export const SecuritySettings = () => {
               className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-emerald-400 font-bold text-xs transition"
             >
               <Download className="w-4 h-4" />
-              <span>Descargar Copia de Respaldo Complete (JSON)</span>
+              <span>Descargar Copia de Respaldo Completa (JSON)</span>
             </button>
           </div>
 

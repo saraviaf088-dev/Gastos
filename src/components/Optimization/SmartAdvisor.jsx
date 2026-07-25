@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { Sparkles, TrendingDown, ArrowRight, Target, DollarSign, Calculator, CheckCircle2 } from 'lucide-react';
+import { formatCurrency, CURRENCY_SYMBOL } from '../../utils/currency';
 
 export const SmartAdvisor = () => {
   const { financials } = useFinance();
@@ -68,10 +69,10 @@ export const SmartAdvisor = () => {
               <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-xl text-right shrink-0 min-w-[180px]">
                 <span className="text-[10px] text-slate-400 uppercase font-semibold">Ahorro Mensual Est.</span>
                 <div className="text-xl font-extrabold text-emerald-400 mt-0.5">
-                  +${rec.potentialMonthlySavings.toFixed(0)}/mes
+                  +{formatCurrency(rec.potentialMonthlySavings)}/mes
                 </div>
                 <span className="text-[11px] text-slate-500">
-                  +${(rec.potentialMonthlySavings * 12).toFixed(0)} al año
+                  +{formatCurrency(rec.potentialMonthlySavings * 12)} al año
                 </span>
               </div>
             </div>
@@ -92,7 +93,7 @@ export const SmartAdvisor = () => {
             <div>
               <div className="flex justify-between text-xs font-semibold mb-2">
                 <span className="text-slate-300">Ajuste en Categoría Principal ({simCutRest}%)</span>
-                <span className="text-emerald-400">Ahorro: +${(topCategoryAmount * (simCutRest / 100)).toFixed(0)}/mes</span>
+                <span className="text-emerald-400">Ahorro: +{formatCurrency(topCategoryAmount * (simCutRest / 100))}/mes</span>
               </div>
               <input
                 type="range"
@@ -109,7 +110,7 @@ export const SmartAdvisor = () => {
             <div>
               <div className="flex justify-between text-xs font-semibold mb-2">
                 <span className="text-slate-300">Reducción de Gastos Hormiga ({simCutAnt}%)</span>
-                <span className="text-amber-400">Ahorro: +${(antAmount * (simCutAnt / 100)).toFixed(0)}/mes</span>
+                <span className="text-amber-400">Ahorro: +{formatCurrency(antAmount * (simCutAnt / 100))}/mes</span>
               </div>
               <input
                 type="range"
@@ -127,10 +128,10 @@ export const SmartAdvisor = () => {
           <div className="bg-gradient-to-br from-slate-950 to-indigo-950/80 p-5 rounded-2xl border border-indigo-500/30 text-center flex flex-col justify-center">
             <span className="text-xs text-slate-400 font-semibold uppercase">Potencial de Ahorro Acumulado</span>
             <div className="text-3xl font-black text-emerald-400 mt-2">
-              +${monthlySavingsSimulated.toFixed(0)} <span className="text-sm font-normal text-slate-300">/ mes</span>
+              +{formatCurrency(monthlySavingsSimulated)} <span className="text-sm font-normal text-slate-300">/ mes</span>
             </div>
             <div className="text-lg font-bold text-teal-300 mt-1">
-              +${yearlySavingsSimulated.toFixed(0)} <span className="text-xs text-slate-400">/ año</span>
+              +{formatCurrency(yearlySavingsSimulated)} <span className="text-xs text-slate-400">/ año</span>
             </div>
           </div>
         </div>

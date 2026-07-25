@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { X, Upload, FileText, CheckCircle2, Paperclip, AlertCircle } from 'lucide-react';
+import { CURRENCY_SYMBOL } from '../../utils/currency';
 
 export const QuickActionModal = () => {
   const {
@@ -137,7 +138,7 @@ export const QuickActionModal = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Monto ($) *</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Monto ({CURRENCY_SYMBOL}) *</label>
               <input
                 type="number"
                 step="0.01"

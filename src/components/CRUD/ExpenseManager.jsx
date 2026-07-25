@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { exportToCSV } from '../../utils/exportImport';
+import { formatCurrency } from '../../utils/currency';
 import { Plus, Search, FileText, Trash2, Download, Paperclip, AlertOctagon, Tag } from 'lucide-react';
 
 export const ExpenseManager = () => {
@@ -93,7 +94,7 @@ export const ExpenseManager = () => {
       <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
         <div className="p-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/60 text-xs">
           <span className="text-slate-400 font-medium">Registros encontrados: {filteredExpenses.length}</span>
-          <span className="font-extrabold text-rose-400">Total Gastos: ${totalFiltered.toLocaleString()}</span>
+          <span className="font-extrabold text-rose-400">Total Gastos: {formatCurrency(totalFiltered)}</span>
         </div>
 
         {filteredExpenses.length === 0 ? (
@@ -154,7 +155,7 @@ export const ExpenseManager = () => {
                       )}
                     </td>
                     <td className="px-5 py-4 text-right font-extrabold text-rose-400 text-sm">
-                      -${parseFloat(exp.amount).toLocaleString()}
+                      -{formatCurrency(parseFloat(exp.amount))}
                     </td>
                     <td className="px-5 py-4 text-center">
                       <button

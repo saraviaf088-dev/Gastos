@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getStoredData, saveStoredData, seedInitialData, KEYS } from '../utils/storage';
+import { getStoredData, saveStoredData, seedInitialData, KEYS, getStoredInitialBalance, setStoredInitialBalance } from '../utils/storage';
 import { calculateFinancials } from '../utils/calculations';
 
 const FinanceContext = createContext();
@@ -9,6 +9,7 @@ export const FinanceProvider = ({ children }) => {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [initialBalance, setInitialBalanceState] = useState(0);
   
   // Modals state
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
@@ -21,6 +22,7 @@ export const FinanceProvider = ({ children }) => {
     setIncomes(getStoredData(KEYS.INCOMES, []));
     setExpenses(getStoredData(KEYS.EXPENSES, []));
     setCategories(getStoredData(KEYS.CATEGORIES, []));
+    setInitialBalanceState(getStoredInitialBalance());
   }, []);
 
   // Sync to local storage
@@ -37,6 +39,12 @@ export const FinanceProvider = ({ children }) => {
   const updateCategories = (newCategories) => {
     setCategories(newCategories);
     saveStoredData(KEYS.CATEGORIES, newCategories);
+  };
+
+  const updateInitialBalance = (amount) => {
+    const num = parseFloat(amount) || 0;
+    setInitialBalanceState(num);
+    setStoredInitialBalance(num);
   };
 
   // CRUD Income
@@ -97,7 +105,7 @@ export const FinanceProvider = ({ children }) => {
   };
 
   // Financial Analysis computations
-  const financials = calculateFinancials(incomes, expenses, categories);
+  const financials = calculateFinancials(incomes, expenses, categories, initialBalance);
 
   return (
     <FinanceContext.Provider
@@ -108,6 +116,9 @@ export const FinanceProvider = ({ children }) => {
         financials,
         activeTab,
         setActiveTab,
+        // Initial Balance
+        initialBalance,
+        updateInitialBalance,
         // Income CRUD
         addIncome,
         editIncome,
