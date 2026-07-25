@@ -1,75 +1,21 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
-import { KEYS, getStoredData, saveStoredData } from './storage';
+import { createClient } from '@supabase/supabase-js';
 
-// Key for sync code and custom config
-export const SYNC_KEYS = {
-  CODE: 'finan_sync_code',
-  FIREBASE_CONFIG: 'finan_custom_firebase_config',
-  LAST_SYNC: 'finan_last_sync_timestamp'
-};
+// ===== CONFIGURACION SUPABASE =====
+const SUPABASE_URL = 'https://xsvkbqdbwtvbotkickin.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ePdWBjUTqyf77peOuKP7zA_wghj9jzJ';
 
-// Default fallback Firebase config (public demo project for real-time sync out of the box)
-const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyD-demoKeyForFinanSmartSync2026",
-  authDomain: "finansmart-sync.firebaseapp.com",
-  projectId: "finansmart-sync",
-  storageBucket: "finansmart-sync.appspot.com",
-  messagingSenderId: "109823471029",
-  appId: "1:109823471029:web:98abc123def456"
-};
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // BroadcastChannel for cross-tab live updates on the same device
 const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('finansmart_sync_channel') : null;
 
-// Get Sync Code (auto-generated, shared across all devices)
+// Get Sync Code (shared across all devices for automatic sync)
 export const getSyncCode = () => {
   return 'FINAN-AUTO-SYNC';
 };
 
 export const setSyncCode = (newCode) => {
   return 'FINAN-AUTO-SYNC';
-};
-
-// Custom Firebase config helper
-export const getStoredFirebaseConfig = () => {
-  try {
-    const custom = localStorage.getItem(SYNC_KEYS.FIREBASE_CONFIG);
-    if (custom) {
-      return JSON.parse(custom);
-    }
-  } catch (err) {
-    console.warn('Error reading custom firebase config:', err);
-  }
-  return null;
-};
-
-export const saveFirebaseConfig = (configObj) => {
-  if (!configObj) {
-    localStorage.removeItem(SYNC_KEYS.FIREBASE_CONFIG);
-  } else {
-    localStorage.setItem(SYNC_KEYS.FIREBASE_CONFIG, JSON.stringify(configObj));
-  }
-};
-
-// Initialize Firebase App dynamically
-let firestoreDb = null;
-let currentApp = null;
-
-const initFirebase = () => {
-  try {
-    const config = getStoredFirebaseConfig() || DEFAULT_FIREBASE_CONFIG;
-    if (!getApps().length) {
-      currentApp = initializeApp(config);
-    } else {
-      currentApp = getApp();
-    }
-    firestoreDb = getFirestore(currentApp);
-    return firestoreDb;
-  } catch (err) {
-    console.warn('Firebase initialization notice:', err.message);
-    return null;
-  }
 };
 
 // Listen to local BroadcastChannel messages across browser tabs
@@ -99,85 +45,106 @@ export const notifyLocalTabs = (payload) => {
   }
 };
 
-// Realtime Remote Listener (Cloud Sync)
-let activeUnsubscribe = null;
+// Realtime Remote Listener (Supabase Realtime)
+let activeChannel = null;
 
 export const subscribeToCloudSync = (syncCode, onRemoteData) => {
-  // Stop existing listener if any
-  if (activeUnsubscribe) {
-    activeUnsubscribe();
-    activeUnsubscribe = null;
+  // Unsubscribe from previous channel if any
+  if (activeChannel) {
+    supabase.removeChannel(activeChannel);
+    activeChannel = null;
   }
 
-  const db = initFirebase();
-  if (!db) return () => {};
-
-  const docRef = doc(db, 'user_workspaces', syncCode);
-
-  try {
-    activeUnsubscribe = onSnapshot(docRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        const localLastSync = parseInt(localStorage.getItem(SYNC_KEYS.LAST_SYNC) || '0', 10);
-        
-        // Firestore may convert numbers to Timestamp objects, so normalize to number
-        let remoteTimestamp = 0;
-        if (data.updatedAt) {
-          if (typeof data.updatedAt === 'number') {
-            remoteTimestamp = data.updatedAt;
-          } else if (data.updatedAt.toMillis) {
-            remoteTimestamp = data.updatedAt.toMillis();
-          } else if (data.updatedAt.seconds) {
-            remoteTimestamp = data.updatedAt.seconds * 1000;
-          }
-        }
-
-        // Only apply if remote change is newer than our last push
-        if (remoteTimestamp > localLastSync) {
-          localStorage.setItem(SYNC_KEYS.LAST_SYNC, remoteTimestamp.toString());
-          if (onRemoteData) {
-            onRemoteData(data);
-          }
+  // Subscribe to real-time changes on the user_workspaces table
+  activeChannel = supabase
+    .channel(`workspace:${syncCode}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'user_workspaces',
+        filter: `sync_code=eq.${syncCode}`
+      },
+      (payload) => {
+        const data = payload.new;
+        if (data && data.payload) {
+          const workspaceData = {
+            incomes: data.payload.incomes || [],
+            expenses: data.payload.expenses || [],
+            categories: data.payload.categories || [],
+            initialBalance: data.payload.initialBalance ?? 0,
+            updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : 0
+          };
+          onRemoteData(workspaceData);
         }
       }
-    }, (error) => {
-      console.warn('Firestore realtime sync warning (offline or fallback):', error.message);
-    });
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'user_workspaces',
+        filter: `sync_code=eq.${syncCode}`
+      },
+      (payload) => {
+        const data = payload.new;
+        if (data && data.payload) {
+          const workspaceData = {
+            incomes: data.payload.incomes || [],
+            expenses: data.payload.expenses || [],
+            categories: data.payload.categories || [],
+            initialBalance: data.payload.initialBalance ?? 0,
+            updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : 0
+          };
+          onRemoteData(workspaceData);
+        }
+      }
+    )
+    .subscribe();
 
-    return () => {
-      if (activeUnsubscribe) activeUnsubscribe();
-    };
-  } catch (err) {
-    console.warn('Could not establish cloud snapshot listener:', err);
-    return () => {};
-  }
+  return () => {
+    if (activeChannel) {
+      supabase.removeChannel(activeChannel);
+      activeChannel = null;
+    }
+  };
 };
 
-// Push local changes to cloud
+// Push local changes to Supabase
 export const pushToCloudSync = async (syncCode, data) => {
-  const now = Date.now();
-  localStorage.setItem(SYNC_KEYS.LAST_SYNC, now.toString());
-
   // Also notify local tabs immediately
   notifyLocalTabs(data);
 
-  const db = initFirebase();
-  if (!db) return false;
-
   try {
-    const docRef = doc(db, 'user_workspaces', syncCode);
     const payload = {
       incomes: data.incomes || [],
       expenses: data.expenses || [],
       categories: data.categories || [],
-      initialBalance: data.initialBalance ?? 0,
-      updatedAt: now,
-      updatedFrom: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'PC'
+      initialBalance: data.initialBalance ?? 0
     };
-    await setDoc(docRef, payload, { merge: true });
+
+    // Upsert: insert or update the workspace row
+    const { error } = await supabase
+      .from('user_workspaces')
+      .upsert(
+        {
+          sync_code: syncCode,
+          payload: payload,
+          updated_at: new Date().toISOString(),
+          updated_from: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'PC'
+        },
+        { onConflict: 'sync_code' }
+      );
+
+    if (error) {
+      console.warn('Supabase sync push error:', error.message);
+      return false;
+    }
     return true;
   } catch (err) {
-    console.warn('Cloud sync push fallback to offline storage:', err.message);
+    console.warn('Supabase sync push fallback:', err.message);
     return false;
   }
 };
