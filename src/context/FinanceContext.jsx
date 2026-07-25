@@ -1,13 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getStoredData, saveStoredData, seedInitialData, KEYS, getStoredInitialBalance, setStoredInitialBalance } from '../utils/storage';
 import { calculateFinancials } from '../utils/calculations';
-import { 
-  getSyncCode, 
-  setSyncCode, 
-  subscribeToCloudSync, 
-  pushToCloudSync, 
-  setupLocalTabSync 
-} from '../utils/cloudSync';
+import { setupLocalTabSync, notifyLocalTabs } from '../utils/cloudSync';
 
 const FinanceContext = createContext();
 
@@ -18,18 +12,10 @@ export const FinanceProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [initialBalance, setInitialBalanceState] = useState(0);
   
-  // Real-time Sync State
-  const [syncCodeState, setSyncCodeState] = useState(getSyncCode());
-  const [syncStatus, setSyncStatus] = useState('connected'); // 'connected' | 'syncing' | 'offline'
-  const [lastSyncedAt, setLastSyncedAt] = useState(new Date());
-
   // Modals state
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [quickActionType, setQuickActionType] = useState('expense');
   const [viewAttachmentModal, setViewAttachmentModal] = useState(null); // { name, type, data, title }
-
-  // Ref to prevent circular loops during remote sync application
-  const isApplyingRemoteRef = useRef(false);
 
   // Load initial local data
   useEffect(() => {
@@ -45,7 +31,7 @@ export const FinanceProvider = ({ children }) => {
     setInitialBalanceState(loadedBalance);
   }, []);
 
-  // Sync to local storage & trigger push to Cloud / TabSync
+  // Sync to local storage & notify other tabs
   const syncAndPersist = (updatedIncomes, updatedExpenses, updatedCategories, updatedBalance) => {
     const inc = updatedIncomes !== undefined ? updatedIncomes : incomes;
     const exp = updatedExpenses !== undefined ? updatedExpenses : expenses;
@@ -57,28 +43,18 @@ export const FinanceProvider = ({ children }) => {
     saveStoredData(KEYS.CATEGORIES, cat);
     setStoredInitialBalance(bal);
 
-    if (!isApplyingRemoteRef.current) {
-      setSyncStatus('syncing');
-      pushToCloudSync(syncCodeState, {
-        incomes: inc,
-        expenses: exp,
-        categories: cat,
-        initialBalance: bal
-      }).then(() => {
-        setSyncStatus('connected');
-        setLastSyncedAt(new Date());
-      }).catch(() => {
-        setSyncStatus('offline');
-      });
-    }
+    notifyLocalTabs({
+      incomes: inc,
+      expenses: exp,
+      categories: cat,
+      initialBalance: bal
+    });
   };
 
-  // Listen to remote changes from Cloud & local tab BroadcastChannel
+  // Listen to remote changes from other local tabs via BroadcastChannel
   useEffect(() => {
-    // 1. Cross-tab local listener
     const cleanupTabSync = setupLocalTabSync((payload) => {
       if (payload) {
-        isApplyingRemoteRef.current = true;
         if (payload.incomes) {
           setIncomes(payload.incomes);
           saveStoredData(KEYS.INCOMES, payload.incomes);
@@ -95,60 +71,13 @@ export const FinanceProvider = ({ children }) => {
           setInitialBalanceState(payload.initialBalance);
           setStoredInitialBalance(payload.initialBalance);
         }
-        setLastSyncedAt(new Date());
-        setTimeout(() => { isApplyingRemoteRef.current = false; }, 100);
-      }
-    });
-
-    // 2. Cloud Snapshot Listener across PC & Mobile
-    const cleanupCloudSync = subscribeToCloudSync(syncCodeState, (remoteData) => {
-      if (remoteData) {
-        isApplyingRemoteRef.current = true;
-        setSyncStatus('syncing');
-
-        if (Array.isArray(remoteData.incomes)) {
-          setIncomes(remoteData.incomes);
-          saveStoredData(KEYS.INCOMES, remoteData.incomes);
-        }
-        if (Array.isArray(remoteData.expenses)) {
-          setExpenses(remoteData.expenses);
-          saveStoredData(KEYS.EXPENSES, remoteData.expenses);
-        }
-        if (Array.isArray(remoteData.categories)) {
-          setCategories(remoteData.categories);
-          saveStoredData(KEYS.CATEGORIES, remoteData.categories);
-        }
-        if (typeof remoteData.initialBalance === 'number') {
-          setInitialBalanceState(remoteData.initialBalance);
-          setStoredInitialBalance(remoteData.initialBalance);
-        }
-
-        setSyncStatus('connected');
-        setLastSyncedAt(new Date());
-        setTimeout(() => { isApplyingRemoteRef.current = false; }, 100);
       }
     });
 
     return () => {
       cleanupTabSync();
-      cleanupCloudSync();
     };
-  }, [syncCodeState]);
-
-  // Method to update Sync Code (pairing PC with Mobile)
-  const updateSyncCode = (newCode) => {
-    const formatted = setSyncCode(newCode);
-    if (formatted) {
-      setSyncCodeState(formatted);
-      // Immediately push current local data to new cloud doc
-      pushToCloudSync(formatted, {
-        incomes,
-        expenses,
-        categories,
-        initialBalance
-      });
-    }
-  };
+  }, []);
 
   // State Updaters
   const updateIncomes = (newIncomes) => {
@@ -244,11 +173,6 @@ export const FinanceProvider = ({ children }) => {
         // Initial Balance
         initialBalance,
         updateInitialBalance,
-        // Real-time Cloud Sync
-        syncCode: syncCodeState,
-        updateSyncCode,
-        syncStatus,
-        lastSyncedAt,
         // Income CRUD
         addIncome,
         editIncome,
