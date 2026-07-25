@@ -244,11 +244,6 @@ export const FinanceProvider = ({ children }) => {
         // Initial Balance
         initialBalance,
         updateInitialBalance,
-        // Real-time Cloud Sync
-        syncCode: syncCodeState,
-        updateSyncCode,
-        syncStatus,
-        lastSyncedAt,
         // Income CRUD
         addIncome,
         editIncome,
