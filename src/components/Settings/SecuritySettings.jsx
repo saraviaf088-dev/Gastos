@@ -172,7 +172,7 @@ export const SecuritySettings = () => {
             </p>
 
             <button
-              onClick={() => exportFullBackupJSON(incomes, expenses, categories)}
+              onClick={() => exportFullBackupJSON(incomes, expenses, categories, initialBalance)}
               className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-emerald-400 font-bold text-xs transition"
             >
               <Download className="w-4 h-4" />

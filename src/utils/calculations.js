@@ -6,7 +6,7 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
   const totalIncome = incomes.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
   const totalExpense = expenses.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
   const netBalance = initialBalance + totalIncome - totalExpense;
-  const savingsRate = totalIncome > 0 ? Math.max(0, ((netBalance / totalIncome) * 100)) : 0;
+  const savingsRate = totalIncome > 0 ? Math.max(0, (((totalIncome - totalExpense) / totalIncome) * 100)) : 0;
 
   // Breakdown by Category
   const expenseByCategory = {};
@@ -93,11 +93,12 @@ export const calculateFinancials = (incomes = [], expenses = [], categories = []
   });
 
   if (totalAntExpenseAmount > (totalIncome * 0.05) && totalIncome > 0) {
+    const antPercent = totalExpense > 0 ? ((totalAntExpenseAmount / totalExpense) * 100).toFixed(1) : '0.0';
     activeAlerts.push({
       id: 'alert-ant-high',
       type: 'INFO',
       title: 'Detección de Gastos Hormiga Elevados',
-      message: `Tus pequeños gastos acumulados suman ${CURRENCY_SYMBOL} ${totalAntExpenseAmount.toLocaleString()} (${((totalAntExpenseAmount / totalExpense) * 100).toFixed(1)}% de tus gastos totales).`,
+      message: `Tus pequeños gastos acumulados suman ${CURRENCY_SYMBOL} ${totalAntExpenseAmount.toLocaleString()} (${antPercent}% de tus gastos totales).`,
       category: 'Gastos Hormiga',
       date: new Date().toLocaleDateString('es-ES')
     });

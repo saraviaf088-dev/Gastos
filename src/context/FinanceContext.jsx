@@ -96,7 +96,7 @@ export const FinanceProvider = ({ children }) => {
           setStoredInitialBalance(payload.initialBalance);
         }
         setLastSyncedAt(new Date());
-        setTimeout(() => { isApplyingRemoteRef.current = false; }, 100);
+        setTimeout(() => { isApplyingRemoteRef.current = false; }, 500);
       }
     });
 
@@ -125,7 +125,7 @@ export const FinanceProvider = ({ children }) => {
 
         setSyncStatus('connected');
         setLastSyncedAt(new Date());
-        setTimeout(() => { isApplyingRemoteRef.current = false; }, 100);
+        setTimeout(() => { isApplyingRemoteRef.current = false; }, 500);
       }
     });
 

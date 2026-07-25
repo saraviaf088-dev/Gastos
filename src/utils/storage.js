@@ -194,6 +194,7 @@ export const clearAllData = () => {
   localStorage.removeItem(KEYS.INCOMES);
   localStorage.removeItem(KEYS.EXPENSES);
   localStorage.removeItem(KEYS.CATEGORIES);
+  localStorage.removeItem(KEYS.INITIAL_BALANCE);
   seedInitialData();
 };
 

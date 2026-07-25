@@ -83,7 +83,7 @@ export const ExpenseCharts = () => {
     datasets: [
       {
         label: 'Monto',
-        data: [initialBalance, totalIncome, totalExpense, Math.max(0, financials.netBalance)],
+        data: [initialBalance, totalIncome, totalExpense, financials.netBalance],
         backgroundColor: ['rgba(14, 165, 233, 0.85)', 'rgba(16, 185, 129, 0.85)', 'rgba(239, 68, 68, 0.85)', 'rgba(20, 184, 166, 0.85)'],
         borderRadius: 12,
         borderWidth: 1,

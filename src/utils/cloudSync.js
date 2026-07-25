@@ -120,9 +120,21 @@ export const subscribeToCloudSync = (syncCode, onRemoteData) => {
         const data = snapshot.data();
         const localLastSync = parseInt(localStorage.getItem(SYNC_KEYS.LAST_SYNC) || '0', 10);
         
+        // Firestore may convert numbers to Timestamp objects, so normalize to number
+        let remoteTimestamp = 0;
+        if (data.updatedAt) {
+          if (typeof data.updatedAt === 'number') {
+            remoteTimestamp = data.updatedAt;
+          } else if (data.updatedAt.toMillis) {
+            remoteTimestamp = data.updatedAt.toMillis();
+          } else if (data.updatedAt.seconds) {
+            remoteTimestamp = data.updatedAt.seconds * 1000;
+          }
+        }
+
         // Only apply if remote change is newer than our last push
-        if (data.updatedAt && data.updatedAt > localLastSync) {
-          localStorage.setItem(SYNC_KEYS.LAST_SYNC, data.updatedAt.toString());
+        if (remoteTimestamp > localLastSync) {
+          localStorage.setItem(SYNC_KEYS.LAST_SYNC, remoteTimestamp.toString());
           if (onRemoteData) {
             onRemoteData(data);
           }

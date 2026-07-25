@@ -29,14 +29,15 @@ export const exportToCSV = (filename, rows) => {
   document.body.removeChild(link);
 };
 
-export const exportFullBackupJSON = (incomes, expenses, categories) => {
+export const exportFullBackupJSON = (incomes, expenses, categories, initialBalance = 0) => {
   const backupData = {
     app: 'FinanSmart',
     version: '1.0',
     exportDate: new Date().toISOString(),
     incomes,
     expenses,
-    categories
+    categories,
+    initialBalance
   };
 
   const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(backupData, null, 2))}`;
