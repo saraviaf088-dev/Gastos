@@ -1,11 +1,11 @@
 import React from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, Bell, Plus, Lock, LogOut, ShieldCheck, FileCheck, Menu } from 'lucide-react';
+import { Wallet, Bell, Plus, Lock, RefreshCw, Smartphone, Menu } from 'lucide-react';
 import { formatCurrencyShort } from '../utils/currency';
 
 export const Navbar = ({ onToggleSidebar }) => {
-  const { financials, activeTab, setActiveTab, openQuickAction } = useFinance();
+  const { financials, activeTab, setActiveTab, openQuickAction, syncStatus, syncCode } = useFinance();
   const { logout } = useAuth();
   
   const alertCount = financials.activeAlerts.length;
@@ -54,8 +54,27 @@ export const Navbar = ({ onToggleSidebar }) => {
         </div>
       </div>
 
-      {/* Actions & Profile */}
+      {/* Actions & Live Cloud Sync Status Badge */}
       <div className="flex items-center space-x-3">
+        {/* Live Cloud Sync Badge */}
+        <button
+          onClick={() => setActiveTab('configuracion')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition ${
+            syncStatus === 'connected'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+              : syncStatus === 'syncing'
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+              : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+          }`}
+          title={`Sincronización en la Nube (${syncCode}) - Clic para configurar`}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+          <Smartphone className="w-3.5 h-3.5" />
+          <span className="hidden lg:inline font-bold">
+            {syncStatus === 'connected' ? 'En Vivo' : syncStatus === 'syncing' ? 'Sincronizando...' : 'Local'}
+          </span>
+        </button>
+
         {/* Quick Add Button */}
         <button
           onClick={() => openQuickAction('expense')}
