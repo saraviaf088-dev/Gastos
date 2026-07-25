@@ -6,6 +6,7 @@ import {
   setSyncCode, 
   subscribeToCloudSync, 
   pushToCloudSync, 
+  pullFromCloudSync,
   setupLocalTabSync 
 } from '../utils/cloudSync';
 
@@ -31,7 +32,7 @@ export const FinanceProvider = ({ children }) => {
   // Ref to prevent circular loops during remote sync application
   const isApplyingRemoteRef = useRef(false);
 
-  // Load initial local data
+  // Load initial local data, then pull latest from Supabase
   useEffect(() => {
     seedInitialData();
     const loadedIncomes = getStoredData(KEYS.INCOMES, []);
@@ -43,6 +44,32 @@ export const FinanceProvider = ({ children }) => {
     setExpenses(loadedExpenses);
     setCategories(loadedCategories);
     setInitialBalanceState(loadedBalance);
+
+    // Pull from Supabase — if remote has data, use it (remote wins on first load)
+    pullFromCloudSync(getSyncCode()).then((remote) => {
+      if (remote && (remote.incomes.length > 0 || remote.expenses.length > 0 || remote.initialBalance > 0)) {
+        console.log('[INIT] Applying remote data from Supabase');
+        isApplyingRemoteRef.current = true;
+        setIncomes(remote.incomes);
+        setExpenses(remote.expenses);
+        setCategories(remote.categories);
+        setInitialBalanceState(remote.initialBalance);
+        saveStoredData(KEYS.INCOMES, remote.incomes);
+        saveStoredData(KEYS.EXPENSES, remote.expenses);
+        saveStoredData(KEYS.CATEGORIES, remote.categories);
+        setStoredInitialBalance(remote.initialBalance);
+        setTimeout(() => { isApplyingRemoteRef.current = false; }, 500);
+      } else {
+        // No remote data — push local data to cloud
+        console.log('[INIT] No remote data, pushing local to cloud');
+        pushToCloudSync(getSyncCode(), {
+          incomes: loadedIncomes,
+          expenses: loadedExpenses,
+          categories: loadedCategories,
+          initialBalance: loadedBalance
+        });
+      }
+    });
   }, []);
 
   // Sync to local storage & trigger push to Cloud / TabSync

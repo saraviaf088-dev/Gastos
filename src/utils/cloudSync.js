@@ -153,6 +153,35 @@ export const subscribeToCloudSync = (syncCode, onRemoteData) => {
   };
 };
 
+// Pull latest data from Supabase on app startup
+export const pullFromCloudSync = async (syncCode) => {
+  try {
+    const { data: rows, error } = await supabase
+      .from('user_workspaces')
+      .select('payload, updated_at')
+      .eq('sync_code', syncCode)
+      .limit(1)
+      .single();
+
+    if (error || !rows) {
+      console.log('[Supabase PULL] No remote data found');
+      return null;
+    }
+
+    console.log('[Supabase PULL OK] updated_at:', rows.updated_at);
+    return {
+      incomes: rows.payload?.incomes || [],
+      expenses: rows.payload?.expenses || [],
+      categories: rows.payload?.categories || [],
+      initialBalance: rows.payload?.initialBalance ?? 0,
+      updatedAt: rows.updated_at ? new Date(rows.updated_at).getTime() : 0
+    };
+  } catch (err) {
+    console.error('[Supabase PULL CATCH]:', err.message);
+    return null;
+  }
+};
+
 // Push local changes to Supabase
 export const pushToCloudSync = async (syncCode, data) => {
   // Also notify local tabs immediately
