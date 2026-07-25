@@ -22,27 +22,13 @@ const DEFAULT_FIREBASE_CONFIG = {
 // BroadcastChannel for cross-tab live updates on the same device
 const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('finansmart_sync_channel') : null;
 
-// Get or set Sync Code
+// Get Sync Code (auto-generated, shared across all devices)
 export const getSyncCode = () => {
-  let code = localStorage.getItem(SYNC_KEYS.CODE);
-  if (!code) {
-    // Generate a default 6-character clean sync code
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    code = `FINAN-${rand}`;
-    localStorage.setItem(SYNC_KEYS.CODE, code);
-  }
-  return code;
+  return 'FINAN-AUTO-SYNC';
 };
 
 export const setSyncCode = (newCode) => {
-  if (!newCode || !newCode.trim()) return;
-  const formatted = newCode.trim().toUpperCase().replace(/\s+/g, '-');
-  localStorage.setItem(SYNC_KEYS.CODE, formatted);
-  // Broadcast code change
-  if (broadcastChannel) {
-    broadcastChannel.postMessage({ type: 'SYNC_CODE_CHANGED', syncCode: formatted });
-  }
-  return formatted;
+  return 'FINAN-AUTO-SYNC';
 };
 
 // Custom Firebase config helper

@@ -4,8 +4,7 @@ import { useFinance } from '../../context/FinanceContext';
 import { exportFullBackupJSON } from '../../utils/exportImport';
 import { clearAllData } from '../../utils/storage';
 import { 
-  KeyRound, Download, Trash2, Lock, Landmark, 
-  Smartphone, RefreshCw, Copy, Check, QrCode, ShieldCheck, Zap
+  KeyRound, Download, Trash2, Lock, Landmark, ShieldCheck
 } from 'lucide-react';
 import { formatCurrency, CURRENCY_SYMBOL } from '../../utils/currency';
 
@@ -17,10 +16,6 @@ export const SecuritySettings = () => {
     categories, 
     initialBalance, 
     updateInitialBalance,
-    syncCode,
-    updateSyncCode,
-    syncStatus,
-    lastSyncedAt
   } = useFinance();
 
   const [newPin, setNewPin] = useState('');
@@ -28,11 +23,6 @@ export const SecuritySettings = () => {
   const [msg, setMsg] = useState(null);
   const [balanceInput, setBalanceInput] = useState(initialBalance.toString());
   const [balanceMsg, setBalanceMsg] = useState(null);
-
-  // Sync Code Input State
-  const [inputCode, setInputCode] = useState(syncCode);
-  const [codeCopied, setCodeCopied] = useState(false);
-  const [syncMsg, setSyncMsg] = useState(null);
 
   const handlePinChangeSubmit = (e) => {
     e.preventDefault();
@@ -61,22 +51,6 @@ export const SecuritySettings = () => {
     setBalanceMsg({ type: 'success', text: `Saldo inicial actualizado a ${formatCurrency(val)}.` });
   };
 
-  const handleSyncCodeSubmit = (e) => {
-    e.preventDefault();
-    if (!inputCode || !inputCode.trim()) {
-      setSyncMsg({ type: 'error', text: 'Ingresa un código de sincronización válido.' });
-      return;
-    }
-    updateSyncCode(inputCode.trim());
-    setSyncMsg({ type: 'success', text: `¡Dispositivo vinculado con el código ${inputCode.trim().toUpperCase()}! Datos sincronizados en tiempo real.` });
-  };
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(syncCode);
-    setCodeCopied(true);
-    setTimeout(() => setCodeCopied(false), 2500);
-  };
-
   const handleResetData = () => {
     if (window.confirm('¿Estás seguro de restablecer todos tus datos? Se restaurarán los valores por defecto.')) {
       clearAllData();
@@ -90,113 +64,11 @@ export const SecuritySettings = () => {
       <div className="glass-panel rounded-2xl p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center space-x-2">
           <Lock className="w-5 h-5 text-emerald-400" />
-          <span>Configuración, Seguridad & Sincronización</span>
+          <span>Configuración & Seguridad</span>
         </h2>
         <p className="text-xs text-slate-400 mt-0.5">
-          Administra la sincronización multidispositivo en tiempo real (PC y Móvil), credenciales privadas y copias de respaldo.
+          Administra credenciales privadas, saldo inicial y copias de respaldo.
         </p>
-      </div>
-
-      {/* Real-time PC <-> Mobile Cloud Sync Panel */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-emerald-500/30 bg-emerald-950/10 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-950/50">
-              <Smartphone className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="text-sm font-extrabold text-white">Sincronización en Tiempo Real (PC ↔ Móvil)</h3>
-                <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                  syncStatus === 'connected'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                    : syncStatus === 'syncing'
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${syncStatus === 'connected' ? 'bg-emerald-400 animate-ping' : syncStatus === 'syncing' ? 'bg-amber-400' : 'bg-slate-400'}`} />
-                  <span>{syncStatus === 'connected' ? 'En Vivo' : syncStatus === 'syncing' ? 'Sincronizando...' : 'Local'}</span>
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Cualquier cambio realizado en la PC se verá reflejado inmediatamente en tu teléfono móvil y viceversa, sin tener que limpiar el caché.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Sync Code Box */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Código Actual de Sincronización Multidispositivo
-              </label>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className="text-xl sm:text-2xl font-black tracking-widest text-emerald-400 font-mono bg-slate-950 px-3 py-1 rounded-xl border border-emerald-500/30">
-                  {syncCode}
-                </span>
-                <button
-                  onClick={handleCopyCode}
-                  className="flex items-center space-x-1 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition border border-slate-700 active:scale-95"
-                  title="Copiar código"
-                >
-                  {codeCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-300" />}
-                  <span>{codeCopied ? '¡Copiado!' : 'Copiar'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="text-right text-[11px] text-slate-500">
-              <p>Última actualización recibida:</p>
-              <p className="font-bold text-slate-300">
-                {lastSyncedAt ? lastSyncedAt.toLocaleTimeString('es-ES') : 'En espera de cambios...'}
-              </p>
-            </div>
-          </div>
-
-          {/* Form to change code or link mobile */}
-          <form onSubmit={handleSyncCodeSubmit} className="mt-3 pt-3 border-t border-slate-800 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={inputCode}
-                onChange={e => setInputCode(e.target.value.toUpperCase())}
-                placeholder="Ej: MI-FINANZA-2026"
-                className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 text-emerald-400 font-mono font-bold rounded-xl px-4 py-2 text-xs uppercase"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs transition flex items-center justify-center space-x-1.5 whitespace-nowrap active:scale-95"
-            >
-              <Zap className="w-3.5 h-3.5 fill-slate-950" />
-              <span>Vincular con este Código</span>
-            </button>
-          </form>
-
-          {syncMsg && (
-            <p className={`text-xs font-semibold mt-1 ${syncMsg.type === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {syncMsg.text}
-            </p>
-          )}
-        </div>
-
-        {/* Step by step guide */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
-          <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/60 flex items-start space-x-2.5">
-            <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</div>
-            <p className="text-slate-300">Abre esta misma página web en tu teléfono móvil o tablet.</p>
-          </div>
-          <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/60 flex items-start space-x-2.5">
-            <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</div>
-            <p className="text-slate-300">Ingresa el código <strong className="text-emerald-400 font-mono">{syncCode}</strong> en la sección de Sincronización.</p>
-          </div>
-          <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/60 flex items-start space-x-2.5">
-            <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</div>
-            <p className="text-slate-300">¡Listo! Cualquier cambio se actualizará en ambos al instante sin limpiar el caché.</p>
-          </div>
-        </div>
       </div>
 
       {/* Initial Balance Section */}
