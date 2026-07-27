@@ -74,7 +74,7 @@ export const saveStoredData = (key, data) => {
   }
 };
 
-// User data structure: { email, phone, password, name, createdAt }
+// User data structure: { email, phone, password, name, securityQuestion, securityAnswer, createdAt }
 export const getStoredUser = () => {
   const data = localStorage.getItem(KEYS.USER);
   return data ? JSON.parse(data) : null;
@@ -96,8 +96,22 @@ export const userExists = (identifier) => {
   return normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
 };
 
+// Security questions list
+export const SECURITY_QUESTIONS = [
+  '¿Cuál es el nombre de tu primera mascota?',
+  '¿En qué ciudad naciste?',
+  '¿Cuál es tu color favorito?',
+  '¿Cuál es el nombre de tu mejor amigo de la infancia?',
+  '¿Cuál es tu comida favorita?',
+  '¿Cuál es tu película favorita?',
+  '¿Cuál es tu canción favorita?',
+  '¿Cuál es tu hobby favorito?',
+  '¿Cuál es tu estación del año favorita?',
+  '¿Cuál es tu deporte favorito?'
+];
+
 // Register new user
-export const registerUser = (identifier, password, name) => {
+export const registerUser = (identifier, password, name, securityQuestion, securityAnswer) => {
   const existingUser = getStoredUser();
   if (existingUser) {
     return { success: false, message: 'Ya existe una cuenta registrada. Elimina la cuenta actual para crear una nueva.' };
@@ -122,11 +136,21 @@ export const registerUser = (identifier, password, name) => {
     return { success: false, message: 'El nombre debe tener al menos 2 caracteres.' };
   }
 
+  if (!securityQuestion) {
+    return { success: false, message: 'Selecciona una pregunta de seguridad.' };
+  }
+
+  if (!securityAnswer || securityAnswer.trim().length < 2) {
+    return { success: false, message: 'La respuesta debe tener al menos 2 caracteres.' };
+  }
+
   const userData = {
     email: isEmail ? identifier : '',
     phone: isPhone ? identifier : '',
     password: password,
     name: name || '',
+    securityQuestion: securityQuestion,
+    securityAnswer: securityAnswer.toLowerCase().trim(),
     createdAt: new Date().toISOString()
   };
 
@@ -152,6 +176,78 @@ export const loginUser = (identifier, password) => {
   }
 
   return { success: true, message: 'Inicio de sesión exitoso.' };
+};
+
+// Verify security answer for password reset
+export const verifySecurityAnswer = (identifier, answer) => {
+  const user = getStoredUser();
+  if (!user) {
+    return { success: false, message: 'No hay cuenta registrada.' };
+  }
+
+  const normalizedInput = identifier.toLowerCase().trim();
+  const normalizedEmail = user.email ? user.email.toLowerCase().trim() : '';
+  const normalizedPhone = user.phone ? user.phone.trim() : '';
+  
+  const identifierMatch = normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
+  
+  if (!identifierMatch) {
+    return { success: false, message: 'Correo/celular no encontrado.' };
+  }
+
+  if (!user.securityQuestion || !user.securityAnswer) {
+    return { success: false, message: 'Esta cuenta no tiene pregunta de seguridad configurada.' };
+  }
+
+  const normalizedAnswer = answer.toLowerCase().trim();
+  if (normalizedAnswer !== user.securityAnswer) {
+    return { success: false, message: 'Respuesta incorrecta. Intenta de nuevo.' };
+  }
+
+  return { 
+    success: true, 
+    message: 'Identidad verificada correctamente.',
+    securityQuestion: user.securityQuestion
+  };
+};
+
+// Reset password with security answer
+export const resetPassword = (identifier, answer, newPassword) => {
+  const user = getStoredUser();
+  if (!user) {
+    return { success: false, message: 'No hay cuenta registrada.' };
+  }
+
+  const normalizedInput = identifier.toLowerCase().trim();
+  const normalizedEmail = user.email ? user.email.toLowerCase().trim() : '';
+  const normalizedPhone = user.phone ? user.phone.trim() : '';
+  
+  const identifierMatch = normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
+  
+  if (!identifierMatch) {
+    return { success: false, message: 'Correo/celular no encontrado.' };
+  }
+
+  if (!user.securityAnswer) {
+    return { success: false, message: 'Esta cuenta no tiene pregunta de seguridad configurada.' };
+  }
+
+  const normalizedAnswer = answer.toLowerCase().trim();
+  if (normalizedAnswer !== user.securityAnswer) {
+    return { success: false, message: 'Respuesta incorrecta.' };
+  }
+
+  if (!newPassword || newPassword.length < 4) {
+    return { success: false, message: 'La nueva contraseña debe tener al menos 4 caracteres.' };
+  }
+
+  const updatedUser = {
+    ...user,
+    password: newPassword
+  };
+
+  setStoredUser(updatedUser);
+  return { success: true, message: 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.' };
 };
 
 // Update user credentials

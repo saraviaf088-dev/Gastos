@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Lock, ArrowRight, Eye, EyeOff, Mail, Phone, UserPlus, LogIn } from 'lucide-react';
+import { User, Lock, ArrowRight, Eye, EyeOff, Mail, UserPlus, LogIn, HelpCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export const LoginModal = () => {
-  const { login, register, authError, setAuthError, hasAccount } = useAuth();
+  const { login, register, authError, setAuthError, hasAccount, verifySecurity, resetUserPassword, securityQuestions } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(hasAccount);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1: enter identifier, 2: answer question, 3: new password, 4: success
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -16,6 +18,17 @@ export const LoginModal = () => {
   const [registerIdentifier, setRegisterIdentifier] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
+  const [registerSecurityQuestion, setRegisterSecurityQuestion] = useState('');
+  const [registerSecurityAnswer, setRegisterSecurityAnswer] = useState('');
+
+  // Reset password state
+  const [resetIdentifier, setResetIdentifier] = useState('');
+  const [resetSecurityAnswer, setResetSecurityAnswer] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [userSecurityQuestion, setUserSecurityQuestion] = useState('');
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -34,19 +47,98 @@ export const LoginModal = () => {
     }
 
     if (registerIdentifier.trim() && registerPassword.trim()) {
-      register(registerIdentifier, registerPassword, registerName);
+      register(registerIdentifier, registerPassword, registerName, registerSecurityQuestion, registerSecurityAnswer);
     }
   };
 
   const switchMode = () => {
     setIsLoginMode(!isLoginMode);
     setAuthError('');
+    setShowForgotPassword(false);
+    resetLoginForm();
+    resetRegisterForm();
+    resetForgotPasswordForm();
+  };
+
+  const resetLoginForm = () => {
     setLoginIdentifier('');
     setLoginPassword('');
+  };
+
+  const resetRegisterForm = () => {
     setRegisterName('');
     setRegisterIdentifier('');
     setRegisterPassword('');
     setRegisterConfirmPassword('');
+    setRegisterSecurityQuestion('');
+    setRegisterSecurityAnswer('');
+  };
+
+  const resetForgotPasswordForm = () => {
+    setResetIdentifier('');
+    setResetSecurityAnswer('');
+    setResetNewPassword('');
+    setResetConfirmPassword('');
+    setResetMessage('');
+    setResetError('');
+    setUserSecurityQuestion('');
+    setResetStep(1);
+  };
+
+  const handleForgotPassword = () => {
+    setShowForgotPassword(true);
+    setResetStep(1);
+    resetForgotPasswordForm();
+  };
+
+  const handleVerifyIdentifier = (e) => {
+    e.preventDefault();
+    setResetError('');
+    
+    const result = verifySecurity(resetIdentifier, '');
+    if (result.success === false && result.message.includes('no encontrado')) {
+      setResetError(result.message);
+      return;
+    }
+    
+    // Get user to show security question
+    const user = JSON.parse(localStorage.getItem('finan_user_data'));
+    if (user && (user.email === resetIdentifier.toLowerCase().trim() || user.phone === resetIdentifier.trim())) {
+      setUserSecurityQuestion(user.securityQuestion || '');
+      setResetStep(2);
+    } else {
+      setResetError('Correo/celular no encontrado.');
+    }
+  };
+
+  const handleVerifyAnswer = (e) => {
+    e.preventDefault();
+    setResetError('');
+    
+    const result = verifySecurity(resetIdentifier, resetSecurityAnswer);
+    if (result.success) {
+      setResetStep(3);
+    } else {
+      setResetError(result.message);
+    }
+  };
+
+  const handleResetPassword = (e) => {
+    e.preventDefault();
+    setResetError('');
+
+    if (resetNewPassword !== resetConfirmPassword) {
+      setResetError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    const result = resetUserPassword(resetIdentifier, resetSecurityAnswer, resetNewPassword);
+    if (result.success) {
+      setResetMessage(result.message);
+      setResetStep(4);
+    } else {
+      setResetError(result.message);
+    }
   };
 
   return (
@@ -59,49 +151,60 @@ export const LoginModal = () => {
         {/* Header */}
         <div className="text-center mb-6 relative z-10">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-xl shadow-emerald-500/30">
-            {isLoginMode ? (
+            {showForgotPassword ? (
+              <ShieldCheck className="w-8 h-8 text-slate-950" />
+            ) : isLoginMode ? (
               <LogIn className="w-8 h-8 text-slate-950" />
             ) : (
               <UserPlus className="w-8 h-8 text-slate-950" />
             )}
           </div>
           <h2 className="text-2xl font-extrabold text-white tracking-tight">
-            {isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta'}
+            {showForgotPassword 
+              ? 'Restablecer Contraseña'
+              : isLoginMode 
+                ? 'Iniciar Sesión' 
+                : 'Crear Cuenta'
+            }
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            {isLoginMode 
-              ? 'Ingresa tus credenciales para acceder' 
-              : 'Regístrate para comenzar a gestionar tus finanzas'
+            {showForgotPassword
+              ? 'Responde tu pregunta de seguridad para restablecer tu contraseña'
+              : isLoginMode 
+                ? 'Ingresa tus credenciales para acceder' 
+                : 'Regístrate para comenzar a gestionar tus finanzas'
             }
           </p>
         </div>
 
-        {/* Mode Switch Tabs */}
-        <div className="flex mb-6 bg-slate-900/80 rounded-xl p-1 relative z-10">
-          <button
-            onClick={() => setIsLoginMode(true)}
-            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${
-              isLoginMode 
-                ? 'bg-emerald-500 text-slate-950' 
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Iniciar Sesión
-          </button>
-          <button
-            onClick={() => setIsLoginMode(false)}
-            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${
-              !isLoginMode 
-                ? 'bg-emerald-500 text-slate-950' 
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Registrarse
-          </button>
-        </div>
+        {/* Mode Switch Tabs - Only show when not in forgot password mode */}
+        {!showForgotPassword && (
+          <div className="flex mb-6 bg-slate-900/80 rounded-xl p-1 relative z-10">
+            <button
+              onClick={() => setIsLoginMode(true)}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${
+                isLoginMode 
+                  ? 'bg-emerald-500 text-slate-950' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Iniciar Sesión
+            </button>
+            <button
+              onClick={() => setIsLoginMode(false)}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${
+                !isLoginMode 
+                  ? 'bg-emerald-500 text-slate-950' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Registrarse
+            </button>
+          </div>
+        )}
 
         {/* Login Form */}
-        {isLoginMode ? (
+        {isLoginMode && !showForgotPassword && (
           <form onSubmit={handleLogin} className="space-y-4 relative z-10">
             <div>
               <label className="block text-xs text-slate-400 mb-1.5 font-medium">Correo o Celular</label>
@@ -157,19 +260,30 @@ export const LoginModal = () => {
               <ArrowRight className="w-5 h-5 stroke-[2.5]" />
             </button>
 
-            <p className="text-xs text-slate-400 text-center mt-4">
-              ¿No tienes cuenta?{' '}
+            <div className="flex flex-col space-y-2 mt-4">
               <button
                 type="button"
-                onClick={switchMode}
-                className="text-emerald-400 hover:text-emerald-300 font-bold transition"
+                onClick={handleForgotPassword}
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition text-center"
               >
-                Regístrate aquí
+                ¿Olvidaste tu contraseña?
               </button>
-            </p>
+              <p className="text-xs text-slate-400 text-center">
+                ¿No tienes cuenta?{' '}
+                <button
+                  type="button"
+                  onClick={switchMode}
+                  className="text-emerald-400 hover:text-emerald-300 font-bold transition"
+                >
+                  Regístrate aquí
+                </button>
+              </p>
+            </div>
           </form>
-        ) : (
-          /* Register Form */
+        )}
+
+        {/* Register Form */}
+        {!isLoginMode && !showForgotPassword && (
           <form onSubmit={handleRegister} className="space-y-4 relative z-10">
             <div>
               <label className="block text-xs text-slate-400 mb-1.5 font-medium">Nombre (opcional)</label>
@@ -249,6 +363,49 @@ export const LoginModal = () => {
               </div>
             </div>
 
+            {/* Security Question Section */}
+            <div className="pt-2 border-t border-slate-800">
+              <div className="flex items-center space-x-2 mb-3">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <label className="text-xs text-amber-400 font-bold">Pregunta de Seguridad (para recuperar contraseña)</label>
+              </div>
+              
+              <div className="mb-3">
+                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Selecciona una pregunta *</label>
+                <select
+                  value={registerSecurityQuestion}
+                  onChange={(e) => setRegisterSecurityQuestion(e.target.value)}
+                  className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 text-white rounded-xl px-4 py-3 text-sm font-medium"
+                  required
+                >
+                  <option value="">Selecciona una pregunta...</option>
+                  {securityQuestions.map((q, idx) => (
+                    <option key={idx} value={q}>{q}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Tu respuesta *</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <HelpCircle className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <input
+                    type="text"
+                    value={registerSecurityAnswer}
+                    onChange={(e) => setRegisterSecurityAnswer(e.target.value)}
+                    placeholder="Escribe tu respuesta"
+                    className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium"
+                    required
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Guarda esta respuesta, la necesitarás para recuperar tu contraseña
+                </p>
+              </div>
+            </div>
+
             {authError && (
               <p className="text-xs text-rose-400 text-center font-medium">
                 {authError}
@@ -274,6 +431,188 @@ export const LoginModal = () => {
               </button>
             </p>
           </form>
+        )}
+
+        {/* Forgot Password Form */}
+        {showForgotPassword && (
+          <div className="relative z-10">
+            {/* Step 1: Enter identifier */}
+            {resetStep === 1 && (
+              <form onSubmit={handleVerifyIdentifier} className="space-y-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">Correo o Celular registrado</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <Mail className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <input
+                      type="text"
+                      value={resetIdentifier}
+                      onChange={(e) => setResetIdentifier(e.target.value)}
+                      placeholder="correo@ejemplo.com o +58 123 456 7890"
+                      className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium"
+                      autoFocus
+                      required
+                    />
+                  </div>
+                </div>
+
+                {resetError && (
+                  <p className="text-xs text-rose-400 text-center font-medium">{resetError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
+                >
+                  <span>Continuar</span>
+                  <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(false); resetForgotPasswordForm(); }}
+                  className="w-full text-xs text-slate-400 hover:text-emerald-400 py-2 transition text-center"
+                >
+                  ← Volver al inicio de sesión
+                </button>
+              </form>
+            )}
+
+            {/* Step 2: Answer security question */}
+            {resetStep === 2 && (
+              <form onSubmit={handleVerifyAnswer} className="space-y-4">
+                <div className="bg-slate-900/50 rounded-xl p-4 border border-amber-500/30">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <HelpCircle className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs text-amber-400 font-bold">Tu pregunta de seguridad:</span>
+                  </div>
+                  <p className="text-sm text-white font-medium">{userSecurityQuestion}</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">Tu respuesta</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <HelpCircle className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <input
+                      type="text"
+                      value={resetSecurityAnswer}
+                      onChange={(e) => setResetSecurityAnswer(e.target.value)}
+                      placeholder="Escribe tu respuesta"
+                      className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium"
+                      autoFocus
+                      required
+                    />
+                  </div>
+                </div>
+
+                {resetError && (
+                  <p className="text-xs text-rose-400 text-center font-medium">{resetError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
+                >
+                  <span>Verificar Respuesta</span>
+                  <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResetStep(1)}
+                  className="w-full text-xs text-slate-400 hover:text-emerald-400 py-2 transition text-center"
+                >
+                  ← Volver
+                </button>
+              </form>
+            )}
+
+            {/* Step 3: Enter new password */}
+            {resetStep === 3 && (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/30 text-center">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                  <p className="text-sm text-emerald-400 font-medium">Identidad verificada correctamente</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">Nueva Contraseña *</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <Lock className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="Mínimo 4 caracteres"
+                      className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-12 py-3 rounded-xl transition text-sm font-medium"
+                      autoFocus
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">Confirmar Nueva Contraseña *</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <Lock className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      placeholder="Repite tu nueva contraseña"
+                      className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {resetError && (
+                  <p className="text-xs text-rose-400 text-center font-medium">{resetError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
+                >
+                  <span>Restablecer Contraseña</span>
+                  <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+                </button>
+              </form>
+            )}
+
+            {/* Step 4: Success */}
+            {resetStep === 4 && (
+              <div className="space-y-4 text-center">
+                <div className="bg-emerald-500/10 rounded-xl p-6 border border-emerald-500/30">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                  <p className="text-sm text-emerald-400 font-bold mb-1">¡Contraseña restablecida!</p>
+                  <p className="text-xs text-slate-400">{resetMessage}</p>
+                </div>
+
+                <button
+                  onClick={() => { setShowForgotPassword(false); resetForgotPasswordForm(); setIsLoginMode(true); }}
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
+                >
+                  <span>Iniciar Sesión</span>
+                  <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="mt-6 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-500">

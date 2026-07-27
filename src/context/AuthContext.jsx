@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getStoredUser, loginUser, registerUser, updateUserCredentials, deleteUser, setStoredUser } from '../utils/storage';
+import { 
+  getStoredUser, loginUser, registerUser, updateUserCredentials, deleteUser, setStoredUser,
+  verifySecurityAnswer, resetPassword, SECURITY_QUESTIONS
+} from '../utils/storage';
 
 const AuthContext = createContext();
 
@@ -40,8 +43,8 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
-  const register = (identifier, password, name) => {
-    const result = registerUser(identifier, password, name);
+  const register = (identifier, password, name, securityQuestion, securityAnswer) => {
+    const result = registerUser(identifier, password, name, securityQuestion, securityAnswer);
     if (result.success) {
       const user = getStoredUser();
       setIsAuthenticated(true);
@@ -89,6 +92,24 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  const verifySecurity = (identifier, answer) => {
+    return verifySecurityAnswer(identifier, answer);
+  };
+
+  const resetUserPassword = (identifier, answer, newPassword) => {
+    const result = resetPassword(identifier, answer, newPassword);
+    if (result.success) {
+      const user = getStoredUser();
+      setCurrentUser(user);
+      
+      // Sync user to cloud if function is available
+      if (syncUserToCloud) {
+        syncUserToCloud(user);
+      }
+    }
+    return result;
+  };
+
   const hasAccount = currentUser !== null;
 
   return (
@@ -103,7 +124,10 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateCredentials,
         setAuthError,
-        setSyncFunction
+        setSyncFunction,
+        verifySecurity,
+        resetUserPassword,
+        securityQuestions: SECURITY_QUESTIONS
       }}
     >
       {children}
