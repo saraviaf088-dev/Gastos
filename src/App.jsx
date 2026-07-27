@@ -16,6 +16,7 @@ import { SmartAdvisor } from './components/Optimization/SmartAdvisor';
 import { AlertCenter } from './components/Alerts/AlertCenter';
 import { ExcessiveSpendBanner } from './components/Alerts/ExcessiveSpendBanner';
 import { SecuritySettings } from './components/Settings/SecuritySettings';
+import { SavingsGoals } from './components/Savings/SavingsGoals';
 
 export function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -60,6 +61,7 @@ export function AppContent() {
 
           {activeTab === 'ingresos' && <IncomeManager />}
           {activeTab === 'gastos' && <ExpenseManager />}
+          {activeTab === 'metas-ahorro' && <SavingsGoals />}
           {activeTab === 'presupuestos' && <BudgetManager />}
           {activeTab === 'optimizacion' && <SmartAdvisor />}
           {activeTab === 'alertas' && <AlertCenter />}

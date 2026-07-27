@@ -8,7 +8,9 @@ const KEYS = {
   CATEGORIES: 'finan_categories',
   BUDGETS: 'finan_budgets',
   SETTINGS: 'finan_settings',
-  INITIAL_BALANCE: 'finan_initial_balance'
+  INITIAL_BALANCE: 'finan_initial_balance',
+  SAVINGS_GOALS: 'finan_savings_goals',
+  MONTHLY_SAVINGS: 'finan_monthly_savings'
 };
 
 // Default initial categories
@@ -27,137 +29,31 @@ const DEFAULT_CATEGORIES = [
   { id: 'cat-12', name: 'Inversiones y Dividendos', type: 'income', color: '#8b5cf6', icon: 'TrendingUp', isSystem: true, budgetLimit: 0 }
 ];
 
-// Helper to seed demo data if empty
+// Helper to seed initial data if empty
 export const seedInitialData = () => {
-  const existingExpenses = localStorage.getItem(KEYS.EXPENSES);
-  const existingIncomes = localStorage.getItem(KEYS.INCOMES);
-  
   if (!localStorage.getItem(KEYS.USERNAME)) {
-    localStorage.setItem(KEYS.USERNAME, 'admin'); // Default username
-    localStorage.setItem(KEYS.PASSWORD, '1234'); // Default password
+    localStorage.setItem(KEYS.USERNAME, 'admin');
+    localStorage.setItem(KEYS.PASSWORD, '1234');
   }
 
   if (!localStorage.getItem(KEYS.CATEGORIES)) {
     localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(DEFAULT_CATEGORIES));
   }
 
-  const currentDate = new Date();
-  const year = currentDate.getFullYear();
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-
-  if (!existingIncomes) {
-    const sampleIncomes = [
-      {
-        id: 'inc-1',
-        title: 'Sueldo Mensual Empresa',
-        amount: 4500,
-        date: `${year}-${month}-01`,
-        category: 'Salario Principal',
-        paymentMethod: 'Transferencia Bancaria',
-        notes: 'Pago de nómina ordinaria',
-        hasAttachment: true,
-        attachmentName: 'boleta_pago_mes.pdf',
-        attachmentType: 'application/pdf',
-        attachmentData: null,
-        reconciliationStatus: 'RECONCILED'
-      },
-      {
-        id: 'inc-2',
-        title: 'Proyecto Freelance Web',
-        amount: 850,
-        date: `${year}-${month}-12`,
-        category: 'Trabajo Freelance / Extra',
-        paymentMethod: 'PayPal / Stripe',
-        notes: 'Rediseño de landing page cliente',
-        hasAttachment: false,
-        attachmentName: null,
-        attachmentType: null,
-        attachmentData: null,
-        reconciliationStatus: 'MANUAL'
-      }
-    ];
-    localStorage.setItem(KEYS.INCOMES, JSON.stringify(sampleIncomes));
+  if (!localStorage.getItem(KEYS.INCOMES)) {
+    localStorage.setItem(KEYS.INCOMES, JSON.stringify([]));
   }
 
-  if (!existingExpenses) {
-    const sampleExpenses = [
-      {
-        id: 'exp-1',
-        title: 'Supermercado Mensual',
-        amount: 980,
-        date: `${year}-${month}-04`,
-        category: 'Alimentación y Mercadería',
-        paymentMethod: 'Tarjeta de Débito',
-        notes: 'Compras de despensa para el hogar',
-        isAntExpense: false,
-        hasAttachment: true,
-        attachmentName: 'factura_supermercado.jpg',
-        attachmentType: 'image/jpeg',
-        attachmentData: null,
-        reconciliationStatus: 'RECONCILED'
-      },
-      {
-        id: 'exp-2',
-        title: 'Alquiler del Depa',
-        amount: 1500,
-        date: `${year}-${month}-02`,
-        category: 'Vivienda y Alquiler',
-        paymentMethod: 'Transferencia',
-        notes: 'Cuota mensual de arrendamiento',
-        isAntExpense: false,
-        hasAttachment: true,
-        attachmentName: 'recibo_alquiler.pdf',
-        attachmentType: 'application/pdf',
-        attachmentData: null,
-        reconciliationStatus: 'RECONCILED'
-      },
-      {
-        id: 'exp-3',
-        title: 'Cafés diarios en la calle',
-        amount: 135,
-        date: `${year}-${month}-15`,
-        category: 'Gastos Hormiga / Caprichos',
-        paymentMethod: 'Efectivo',
-        notes: 'Acumulado de cafés de especialidad',
-        isAntExpense: true,
-        hasAttachment: false,
-        attachmentName: null,
-        attachmentType: null,
-        attachmentData: null,
-        reconciliationStatus: 'MANUAL'
-      },
-      {
-        id: 'exp-4',
-        title: 'Membresías Netflix & Spotify',
-        amount: 95,
-        date: `${year}-${month}-10`,
-        category: 'Suscripciones y Servicios Digitales',
-        paymentMethod: 'Tarjeta de Crédito',
-        notes: 'Suscripción HD y plan familiar',
-        isAntExpense: true,
-        hasAttachment: true,
-        attachmentName: 'comprobante_netflix.png',
-        attachmentType: 'image/png',
-        attachmentData: null,
-        reconciliationStatus: 'RECONCILED'
-      },
-      {
-        id: 'exp-5',
-        title: 'Cena de Fin de Semana en Restaurante',
-        amount: 280,
-        date: `${year}-${month}-18`,
-        category: 'Entretenimiento y Salidas',
-        paymentMethod: 'Tarjeta de Crédito',
-        notes: 'Salida con amigos',
-        isAntExpense: false,
-        hasAttachment: false,
-        attachmentName: null,
-        attachmentType: null,
-        attachmentData: null,
-        reconciliationStatus: 'PENDING'
-      }
-    ];
-    localStorage.setItem(KEYS.EXPENSES, JSON.stringify(sampleExpenses));
+  if (!localStorage.getItem(KEYS.EXPENSES)) {
+    localStorage.setItem(KEYS.EXPENSES, JSON.stringify([]));
+  }
+
+  if (!localStorage.getItem(KEYS.SAVINGS_GOALS)) {
+    localStorage.setItem(KEYS.SAVINGS_GOALS, JSON.stringify([]));
+  }
+
+  if (!localStorage.getItem(KEYS.MONTHLY_SAVINGS)) {
+    localStorage.setItem(KEYS.MONTHLY_SAVINGS, JSON.stringify([]));
   }
 };
 
@@ -206,6 +102,8 @@ export const clearAllData = () => {
   localStorage.removeItem(KEYS.INITIAL_BALANCE);
   localStorage.removeItem(KEYS.USERNAME);
   localStorage.removeItem(KEYS.PASSWORD);
+  localStorage.removeItem(KEYS.SAVINGS_GOALS);
+  localStorage.removeItem(KEYS.MONTHLY_SAVINGS);
   seedInitialData();
 };
 

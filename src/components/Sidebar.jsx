@@ -11,7 +11,8 @@ import {
   Settings,
   X,
   Landmark,
-  LogOut
+  LogOut,
+  Target
 } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
 
@@ -23,6 +24,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'ingresos', label: 'Ingresos (CRUD)', icon: TrendingUp },
     { id: 'gastos', label: 'Gastos (CRUD)', icon: TrendingDown },
+    { id: 'metas-ahorro', label: 'Metas de Ahorro', icon: Target },
     { id: 'presupuestos', label: 'Presupuestos', icon: PieChart },
     { id: 'optimizacion', label: 'Optimización / IA', icon: Sparkles, badge: 'IA Advisor' },
     { id: 'alertas', label: 'Alertas', icon: AlertTriangle, count: alertCount, countColor: 'bg-rose-500/20 text-rose-400 border border-rose-500/30' },
