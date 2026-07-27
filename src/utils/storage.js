@@ -9,7 +9,9 @@ const KEYS = {
   SETTINGS: 'finan_settings',
   INITIAL_BALANCE: 'finan_initial_balance',
   SAVINGS_GOALS: 'finan_savings_goals',
-  MONTHLY_SAVINGS: 'finan_monthly_savings'
+  MONTHLY_SAVINGS: 'finan_monthly_savings',
+  RESET_CODE: 'finan_reset_code',
+  RESET_IDENTIFIER: 'finan_reset_identifier'
 };
 
 // Default initial categories
@@ -74,7 +76,7 @@ export const saveStoredData = (key, data) => {
   }
 };
 
-// User data structure: { email, phone, password, name, securityQuestion, securityAnswer, createdAt }
+// User data structure: { email, phone, password, name, createdAt }
 export const getStoredUser = () => {
   const data = localStorage.getItem(KEYS.USER);
   return data ? JSON.parse(data) : null;
@@ -96,22 +98,71 @@ export const userExists = (identifier) => {
   return normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
 };
 
-// Security questions list
-export const SECURITY_QUESTIONS = [
-  '¿Cuál es el nombre de tu primera mascota?',
-  '¿En qué ciudad naciste?',
-  '¿Cuál es tu color favorito?',
-  '¿Cuál es el nombre de tu mejor amigo de la infancia?',
-  '¿Cuál es tu comida favorita?',
-  '¿Cuál es tu película favorita?',
-  '¿Cuál es tu canción favorita?',
-  '¿Cuál es tu hobby favorito?',
-  '¿Cuál es tu estación del año favorita?',
-  '¿Cuál es tu deporte favorito?'
-];
+// Generate 6-digit verification code
+export const generateVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Store reset code with expiration (5 minutes)
+export const storeResetCode = (identifier, code) => {
+  const resetData = {
+    code: code,
+    identifier: identifier,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (5 * 60 * 1000) // 5 minutes
+  };
+  localStorage.setItem(KEYS.RESET_CODE, JSON.stringify(resetData));
+  localStorage.setItem(KEYS.RESET_IDENTIFIER, identifier);
+};
+
+// Verify reset code
+export const verifyResetCode = (identifier, code) => {
+  const resetData = JSON.parse(localStorage.getItem(KEYS.RESET_CODE));
+  
+  if (!resetData) {
+    return { success: false, message: 'No hay código de verificación activo. Solicita uno nuevo.' };
+  }
+  
+  if (Date.now() > resetData.expiresAt) {
+    localStorage.removeItem(KEYS.RESET_CODE);
+    localStorage.removeItem(KEYS.RESET_IDENTIFIER);
+    return { success: false, message: 'El código ha expirado. Solicita uno nuevo.' };
+  }
+  
+  const normalizedInput = identifier.toLowerCase().trim();
+  const normalizedStored = resetData.identifier.toLowerCase().trim();
+  
+  if (normalizedInput !== normalizedStored) {
+    return { success: false, message: 'El correo/celular no coincide con el código.' };
+  }
+  
+  if (code !== resetData.code) {
+    return { success: false, message: 'Código incorrecto. Intenta de nuevo.' };
+  }
+  
+  return { success: true, message: 'Código verificado correctamente.' };
+};
+
+// Clear reset code
+export const clearResetCode = () => {
+  localStorage.removeItem(KEYS.RESET_CODE);
+  localStorage.removeItem(KEYS.RESET_IDENTIFIER);
+};
+
+// Check if user exists for password reset
+export const userExistsForReset = (identifier) => {
+  const user = getStoredUser();
+  if (!user) return false;
+  
+  const normalizedInput = identifier.toLowerCase().trim();
+  const normalizedEmail = user.email ? user.email.toLowerCase().trim() : '';
+  const normalizedPhone = user.phone ? user.phone.trim() : '';
+  
+  return normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
+};
 
 // Register new user
-export const registerUser = (identifier, password, name, securityQuestion, securityAnswer) => {
+export const registerUser = (identifier, password, name) => {
   const existingUser = getStoredUser();
   if (existingUser) {
     return { success: false, message: 'Ya existe una cuenta registrada. Elimina la cuenta actual para crear una nueva.' };
@@ -136,21 +187,11 @@ export const registerUser = (identifier, password, name, securityQuestion, secur
     return { success: false, message: 'El nombre debe tener al menos 2 caracteres.' };
   }
 
-  if (!securityQuestion) {
-    return { success: false, message: 'Selecciona una pregunta de seguridad.' };
-  }
-
-  if (!securityAnswer || securityAnswer.trim().length < 2) {
-    return { success: false, message: 'La respuesta debe tener al menos 2 caracteres.' };
-  }
-
   const userData = {
     email: isEmail ? identifier : '',
     phone: isPhone ? identifier : '',
     password: password,
     name: name || '',
-    securityQuestion: securityQuestion,
-    securityAnswer: securityAnswer.toLowerCase().trim(),
     createdAt: new Date().toISOString()
   };
 
@@ -178,8 +219,8 @@ export const loginUser = (identifier, password) => {
   return { success: true, message: 'Inicio de sesión exitoso.' };
 };
 
-// Verify security answer for password reset
-export const verifySecurityAnswer = (identifier, answer) => {
+// Reset password with verification code
+export const resetPasswordWithCode = (identifier, code, newPassword) => {
   const user = getStoredUser();
   if (!user) {
     return { success: false, message: 'No hay cuenta registrada.' };
@@ -195,46 +236,10 @@ export const verifySecurityAnswer = (identifier, answer) => {
     return { success: false, message: 'Correo/celular no encontrado.' };
   }
 
-  if (!user.securityQuestion || !user.securityAnswer) {
-    return { success: false, message: 'Esta cuenta no tiene pregunta de seguridad configurada.' };
-  }
-
-  const normalizedAnswer = answer.toLowerCase().trim();
-  if (normalizedAnswer !== user.securityAnswer) {
-    return { success: false, message: 'Respuesta incorrecta. Intenta de nuevo.' };
-  }
-
-  return { 
-    success: true, 
-    message: 'Identidad verificada correctamente.',
-    securityQuestion: user.securityQuestion
-  };
-};
-
-// Reset password with security answer
-export const resetPassword = (identifier, answer, newPassword) => {
-  const user = getStoredUser();
-  if (!user) {
-    return { success: false, message: 'No hay cuenta registrada.' };
-  }
-
-  const normalizedInput = identifier.toLowerCase().trim();
-  const normalizedEmail = user.email ? user.email.toLowerCase().trim() : '';
-  const normalizedPhone = user.phone ? user.phone.trim() : '';
-  
-  const identifierMatch = normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
-  
-  if (!identifierMatch) {
-    return { success: false, message: 'Correo/celular no encontrado.' };
-  }
-
-  if (!user.securityAnswer) {
-    return { success: false, message: 'Esta cuenta no tiene pregunta de seguridad configurada.' };
-  }
-
-  const normalizedAnswer = answer.toLowerCase().trim();
-  if (normalizedAnswer !== user.securityAnswer) {
-    return { success: false, message: 'Respuesta incorrecta.' };
+  // Verify the code first
+  const codeVerification = verifyResetCode(identifier, code);
+  if (!codeVerification.success) {
+    return codeVerification;
   }
 
   if (!newPassword || newPassword.length < 4) {
@@ -247,6 +252,7 @@ export const resetPassword = (identifier, answer, newPassword) => {
   };
 
   setStoredUser(updatedUser);
+  clearResetCode();
   return { success: true, message: 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.' };
 };
 
@@ -304,6 +310,8 @@ export const clearAllData = () => {
   localStorage.removeItem(KEYS.USER);
   localStorage.removeItem(KEYS.SAVINGS_GOALS);
   localStorage.removeItem(KEYS.MONTHLY_SAVINGS);
+  localStorage.removeItem(KEYS.RESET_CODE);
+  localStorage.removeItem(KEYS.RESET_IDENTIFIER);
   seedInitialData();
 };
 

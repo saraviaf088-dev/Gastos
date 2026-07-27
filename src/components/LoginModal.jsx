@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Lock, ArrowRight, Eye, EyeOff, Mail, UserPlus, LogIn, HelpCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { User, Lock, ArrowRight, Eye, EyeOff, Mail, UserPlus, LogIn, KeyRound, CheckCircle2, Smartphone } from 'lucide-react';
 
 export const LoginModal = () => {
-  const { login, register, authError, setAuthError, hasAccount, verifySecurity, resetUserPassword, securityQuestions } = useAuth();
+  const { login, register, authError, setAuthError, hasAccount, requestPasswordReset, verifyCode, resetPassword } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(hasAccount);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetStep, setResetStep] = useState(1); // 1: enter identifier, 2: answer question, 3: new password, 4: success
+  const [resetStep, setResetStep] = useState(1); // 1: enter identifier, 2: enter code, 3: new password, 4: success
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -18,17 +18,15 @@ export const LoginModal = () => {
   const [registerIdentifier, setRegisterIdentifier] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [registerSecurityQuestion, setRegisterSecurityQuestion] = useState('');
-  const [registerSecurityAnswer, setRegisterSecurityAnswer] = useState('');
 
   // Reset password state
   const [resetIdentifier, setResetIdentifier] = useState('');
-  const [resetSecurityAnswer, setResetSecurityAnswer] = useState('');
+  const [resetCode, setResetCode] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
-  const [userSecurityQuestion, setUserSecurityQuestion] = useState('');
+  const [sentCode, setSentCode] = useState('');
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -47,7 +45,7 @@ export const LoginModal = () => {
     }
 
     if (registerIdentifier.trim() && registerPassword.trim()) {
-      register(registerIdentifier, registerPassword, registerName, registerSecurityQuestion, registerSecurityAnswer);
+      register(registerIdentifier, registerPassword, registerName);
     }
   };
 
@@ -70,18 +68,16 @@ export const LoginModal = () => {
     setRegisterIdentifier('');
     setRegisterPassword('');
     setRegisterConfirmPassword('');
-    setRegisterSecurityQuestion('');
-    setRegisterSecurityAnswer('');
   };
 
   const resetForgotPasswordForm = () => {
     setResetIdentifier('');
-    setResetSecurityAnswer('');
+    setResetCode('');
     setResetNewPassword('');
     setResetConfirmPassword('');
     setResetMessage('');
     setResetError('');
-    setUserSecurityQuestion('');
+    setSentCode('');
     setResetStep(1);
   };
 
@@ -91,31 +87,25 @@ export const LoginModal = () => {
     resetForgotPasswordForm();
   };
 
-  const handleVerifyIdentifier = (e) => {
+  const handleSendCode = (e) => {
     e.preventDefault();
     setResetError('');
     
-    const result = verifySecurity(resetIdentifier, '');
-    if (result.success === false && result.message.includes('no encontrado')) {
-      setResetError(result.message);
-      return;
-    }
-    
-    // Get user to show security question
-    const user = JSON.parse(localStorage.getItem('finan_user_data'));
-    if (user && (user.email === resetIdentifier.toLowerCase().trim() || user.phone === resetIdentifier.trim())) {
-      setUserSecurityQuestion(user.securityQuestion || '');
+    const result = requestPasswordReset(resetIdentifier);
+    if (result.success) {
+      setSentCode(result.code);
       setResetStep(2);
+      setResetMessage('Código enviado. Revisa tu correo/celular.');
     } else {
-      setResetError('Correo/celular no encontrado.');
+      setResetError(result.message);
     }
   };
 
-  const handleVerifyAnswer = (e) => {
+  const handleVerifyCode = (e) => {
     e.preventDefault();
     setResetError('');
     
-    const result = verifySecurity(resetIdentifier, resetSecurityAnswer);
+    const result = verifyCode(resetIdentifier, resetCode);
     if (result.success) {
       setResetStep(3);
     } else {
@@ -132,7 +122,7 @@ export const LoginModal = () => {
       return;
     }
 
-    const result = resetUserPassword(resetIdentifier, resetSecurityAnswer, resetNewPassword);
+    const result = resetPassword(resetIdentifier, resetCode, resetNewPassword);
     if (result.success) {
       setResetMessage(result.message);
       setResetStep(4);
@@ -152,7 +142,7 @@ export const LoginModal = () => {
         <div className="text-center mb-6 relative z-10">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-xl shadow-emerald-500/30">
             {showForgotPassword ? (
-              <ShieldCheck className="w-8 h-8 text-slate-950" />
+              <KeyRound className="w-8 h-8 text-slate-950" />
             ) : isLoginMode ? (
               <LogIn className="w-8 h-8 text-slate-950" />
             ) : (
@@ -169,7 +159,13 @@ export const LoginModal = () => {
           </h2>
           <p className="text-sm text-slate-400 mt-1">
             {showForgotPassword
-              ? 'Responde tu pregunta de seguridad para restablecer tu contraseña'
+              ? resetStep === 1 
+                ? 'Ingresa tu correo o celular para recibir un código'
+                : resetStep === 2
+                  ? 'Ingresa el código que recibiste'
+                  : resetStep === 3
+                    ? 'Crea tu nueva contraseña'
+                    : 'Contraseña restablecida exitosamente'
               : isLoginMode 
                 ? 'Ingresa tus credenciales para acceder' 
                 : 'Regístrate para comenzar a gestionar tus finanzas'
@@ -363,49 +359,6 @@ export const LoginModal = () => {
               </div>
             </div>
 
-            {/* Security Question Section */}
-            <div className="pt-2 border-t border-slate-800">
-              <div className="flex items-center space-x-2 mb-3">
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <label className="text-xs text-amber-400 font-bold">Pregunta de Seguridad (para recuperar contraseña)</label>
-              </div>
-              
-              <div className="mb-3">
-                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Selecciona una pregunta *</label>
-                <select
-                  value={registerSecurityQuestion}
-                  onChange={(e) => setRegisterSecurityQuestion(e.target.value)}
-                  className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 text-white rounded-xl px-4 py-3 text-sm font-medium"
-                  required
-                >
-                  <option value="">Selecciona una pregunta...</option>
-                  {securityQuestions.map((q, idx) => (
-                    <option key={idx} value={q}>{q}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Tu respuesta *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <HelpCircle className="w-4 h-4 text-slate-500" />
-                  </div>
-                  <input
-                    type="text"
-                    value={registerSecurityAnswer}
-                    onChange={(e) => setRegisterSecurityAnswer(e.target.value)}
-                    placeholder="Escribe tu respuesta"
-                    className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium"
-                    required
-                  />
-                </div>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Guarda esta respuesta, la necesitarás para recuperar tu contraseña
-                </p>
-              </div>
-            </div>
-
             {authError && (
               <p className="text-xs text-rose-400 text-center font-medium">
                 {authError}
@@ -438,7 +391,16 @@ export const LoginModal = () => {
           <div className="relative z-10">
             {/* Step 1: Enter identifier */}
             {resetStep === 1 && (
-              <form onSubmit={handleVerifyIdentifier} className="space-y-4">
+              <form onSubmit={handleSendCode} className="space-y-4">
+                <div className="bg-sky-500/10 rounded-xl p-4 border border-sky-500/30">
+                  <div className="flex items-center space-x-2">
+                    <Smartphone className="w-5 h-5 text-sky-400" />
+                    <p className="text-xs text-sky-300">
+                      Se enviará un código de 6 dígitos a tu correo o celular registrado
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs text-slate-400 mb-1.5 font-medium">Correo o Celular registrado</label>
                   <div className="relative">
@@ -465,7 +427,7 @@ export const LoginModal = () => {
                   type="submit"
                   className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
                 >
-                  <span>Continuar</span>
+                  <span>Enviar Código</span>
                   <ArrowRight className="w-5 h-5 stroke-[2.5]" />
                 </button>
 
@@ -479,31 +441,40 @@ export const LoginModal = () => {
               </form>
             )}
 
-            {/* Step 2: Answer security question */}
+            {/* Step 2: Enter verification code */}
             {resetStep === 2 && (
-              <form onSubmit={handleVerifyAnswer} className="space-y-4">
-                <div className="bg-slate-900/50 rounded-xl p-4 border border-amber-500/30">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <HelpCircle className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs text-amber-400 font-bold">Tu pregunta de seguridad:</span>
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                {sentCode && (
+                  <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/30">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      <p className="text-xs text-emerald-300 font-bold">Código enviado correctamente</p>
+                    </div>
+                    <div className="bg-slate-900/80 rounded-lg p-3 text-center">
+                      <p className="text-xs text-slate-400 mb-1">Tu código de verificación es:</p>
+                      <p className="text-2xl font-extrabold text-emerald-400 tracking-[0.5em]">{sentCode}</p>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-2 text-center">
+                      * En una app real, este código se enviaría por correo/SMS
+                    </p>
                   </div>
-                  <p className="text-sm text-white font-medium">{userSecurityQuestion}</p>
-                </div>
+                )}
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">Tu respuesta</label>
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">Código de Verificación</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <HelpCircle className="w-4 h-4 text-slate-500" />
+                      <KeyRound className="w-4 h-4 text-slate-500" />
                     </div>
                     <input
                       type="text"
-                      value={resetSecurityAnswer}
-                      onChange={(e) => setResetSecurityAnswer(e.target.value)}
-                      placeholder="Escribe tu respuesta"
-                      className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium"
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium text-center text-2xl tracking-[0.3em]"
                       autoFocus
                       required
+                      maxLength={6}
                     />
                   </div>
                 </div>
@@ -516,7 +487,7 @@ export const LoginModal = () => {
                   type="submit"
                   className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
                 >
-                  <span>Verificar Respuesta</span>
+                  <span>Verificar Código</span>
                   <ArrowRight className="w-5 h-5 stroke-[2.5]" />
                 </button>
 
@@ -535,7 +506,7 @@ export const LoginModal = () => {
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/30 text-center">
                   <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                  <p className="text-sm text-emerald-400 font-medium">Identidad verificada correctamente</p>
+                  <p className="text-sm text-emerald-400 font-medium">Código verificado correctamente</p>
                 </div>
 
                 <div>
@@ -589,7 +560,7 @@ export const LoginModal = () => {
                   className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
                 >
                   <span>Restablecer Contraseña</span>
-                  <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+                  <KeyRound className="w-5 h-5 stroke-[2.5]" />
                 </button>
               </form>
             )}
