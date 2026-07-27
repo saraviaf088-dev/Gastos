@@ -115,6 +115,9 @@ export const subscribeToCloudSync = (syncCode, onRemoteData) => {
             expenses: data.payload.expenses || [],
             categories: data.payload.categories || [],
             initialBalance: data.payload.initialBalance ?? 0,
+            user: data.payload.user || null,
+            savingsGoals: data.payload.savingsGoals || [],
+            monthlySavings: data.payload.monthlySavings || [],
             updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : 0
           };
           onRemoteData(workspaceData);
@@ -137,6 +140,9 @@ export const subscribeToCloudSync = (syncCode, onRemoteData) => {
             expenses: data.payload.expenses || [],
             categories: data.payload.categories || [],
             initialBalance: data.payload.initialBalance ?? 0,
+            user: data.payload.user || null,
+            savingsGoals: data.payload.savingsGoals || [],
+            monthlySavings: data.payload.monthlySavings || [],
             updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : 0
           };
           onRemoteData(workspaceData);
@@ -174,6 +180,9 @@ export const pullFromCloudSync = async (syncCode) => {
       expenses: rows.payload?.expenses || [],
       categories: rows.payload?.categories || [],
       initialBalance: rows.payload?.initialBalance ?? 0,
+      user: rows.payload?.user || null,
+      savingsGoals: rows.payload?.savingsGoals || [],
+      monthlySavings: rows.payload?.monthlySavings || [],
       updatedAt: rows.updated_at ? new Date(rows.updated_at).getTime() : 0
     };
   } catch (err) {
@@ -192,7 +201,10 @@ export const pushToCloudSync = async (syncCode, data) => {
       incomes: data.incomes || [],
       expenses: data.expenses || [],
       categories: data.categories || [],
-      initialBalance: data.initialBalance ?? 0
+      initialBalance: data.initialBalance ?? 0,
+      user: data.user || null,
+      savingsGoals: data.savingsGoals || [],
+      monthlySavings: data.monthlySavings || []
     };
 
     console.log('[Supabase PUSH] syncCode:', syncCode, 'expenses:', payload.expenses.length);

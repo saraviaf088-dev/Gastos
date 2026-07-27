@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { getStoredData, saveStoredData, seedInitialData, KEYS, getStoredInitialBalance, setStoredInitialBalance } from '../utils/storage';
+import { getStoredData, saveStoredData, seedInitialData, KEYS, getStoredInitialBalance, setStoredInitialBalance, getStoredUser, setStoredUser } from '../utils/storage';
 import { calculateFinancials } from '../utils/calculations';
 import { 
   getSyncCode, 
@@ -20,6 +20,7 @@ export const FinanceProvider = ({ children }) => {
   const [initialBalance, setInitialBalanceState] = useState(0);
   const [savingsGoals, setSavingsGoals] = useState([]);
   const [monthlySavings, setMonthlySavings] = useState([]);
+  const [currentUser, setCurrentUser] = useState(getStoredUser());
   
   // Real-time Sync State
   const [syncCodeState, setSyncCodeState] = useState(getSyncCode());
@@ -43,6 +44,7 @@ export const FinanceProvider = ({ children }) => {
     const loadedBalance = getStoredInitialBalance();
     const loadedSavingsGoals = getStoredData(KEYS.SAVINGS_GOALS, []);
     const loadedMonthlySavings = getStoredData(KEYS.MONTHLY_SAVINGS, []);
+    const loadedUser = getStoredUser();
 
     setIncomes(loadedIncomes);
     setExpenses(loadedExpenses);
@@ -50,20 +52,32 @@ export const FinanceProvider = ({ children }) => {
     setInitialBalanceState(loadedBalance);
     setSavingsGoals(loadedSavingsGoals);
     setMonthlySavings(loadedMonthlySavings);
+    setCurrentUser(loadedUser);
 
     // Pull from Supabase — if remote has data, use it (remote wins on first load)
     pullFromCloudSync(getSyncCode()).then((remote) => {
-      if (remote && (remote.incomes.length > 0 || remote.expenses.length > 0 || remote.initialBalance > 0)) {
+      if (remote && (remote.incomes.length > 0 || remote.expenses.length > 0 || remote.initialBalance > 0 || remote.user)) {
         console.log('[INIT] Applying remote data from Supabase');
         isApplyingRemoteRef.current = true;
         setIncomes(remote.incomes);
         setExpenses(remote.expenses);
         setCategories(remote.categories);
         setInitialBalanceState(remote.initialBalance);
+        setSavingsGoals(remote.savingsGoals || []);
+        setMonthlySavings(remote.monthlySavings || []);
         saveStoredData(KEYS.INCOMES, remote.incomes);
         saveStoredData(KEYS.EXPENSES, remote.expenses);
         saveStoredData(KEYS.CATEGORIES, remote.categories);
         setStoredInitialBalance(remote.initialBalance);
+        saveStoredData(KEYS.SAVINGS_GOALS, remote.savingsGoals || []);
+        saveStoredData(KEYS.MONTHLY_SAVINGS, remote.monthlySavings || []);
+        
+        // Sync user data from cloud
+        if (remote.user) {
+          setCurrentUser(remote.user);
+          setStoredUser(remote.user);
+        }
+        
         setTimeout(() => { isApplyingRemoteRef.current = false; }, 500);
       } else {
         // No remote data — push local data to cloud
@@ -72,20 +86,24 @@ export const FinanceProvider = ({ children }) => {
           incomes: loadedIncomes,
           expenses: loadedExpenses,
           categories: loadedCategories,
-          initialBalance: loadedBalance
+          initialBalance: loadedBalance,
+          user: loadedUser,
+          savingsGoals: loadedSavingsGoals,
+          monthlySavings: loadedMonthlySavings
         });
       }
     });
   }, []);
 
   // Sync to local storage & trigger push to Cloud / TabSync
-  const syncAndPersist = (updatedIncomes, updatedExpenses, updatedCategories, updatedBalance, updatedSavingsGoals, updatedMonthlySavings) => {
+  const syncAndPersist = (updatedIncomes, updatedExpenses, updatedCategories, updatedBalance, updatedSavingsGoals, updatedMonthlySavings, updatedUser) => {
     const inc = updatedIncomes !== undefined ? updatedIncomes : incomes;
     const exp = updatedExpenses !== undefined ? updatedExpenses : expenses;
     const cat = updatedCategories !== undefined ? updatedCategories : categories;
     const bal = updatedBalance !== undefined ? updatedBalance : initialBalance;
     const goals = updatedSavingsGoals !== undefined ? updatedSavingsGoals : savingsGoals;
     const monthly = updatedMonthlySavings !== undefined ? updatedMonthlySavings : monthlySavings;
+    const user = updatedUser !== undefined ? updatedUser : currentUser;
 
     saveStoredData(KEYS.INCOMES, inc);
     saveStoredData(KEYS.EXPENSES, exp);
@@ -93,6 +111,7 @@ export const FinanceProvider = ({ children }) => {
     setStoredInitialBalance(bal);
     saveStoredData(KEYS.SAVINGS_GOALS, goals);
     saveStoredData(KEYS.MONTHLY_SAVINGS, monthly);
+    if (user) setStoredUser(user);
 
     if (!isApplyingRemoteRef.current) {
       setSyncStatus('syncing');
@@ -102,7 +121,8 @@ export const FinanceProvider = ({ children }) => {
         categories: cat,
         initialBalance: bal,
         savingsGoals: goals,
-        monthlySavings: monthly
+        monthlySavings: monthly,
+        user: user
       }).then(() => {
         setSyncStatus('connected');
         setLastSyncedAt(new Date());
@@ -110,6 +130,12 @@ export const FinanceProvider = ({ children }) => {
         setSyncStatus('offline');
       });
     }
+  };
+
+  // Method to update user data and sync to cloud
+  const updateCurrentUser = (newUser) => {
+    setCurrentUser(newUser);
+    syncAndPersist(incomes, expenses, categories, initialBalance, savingsGoals, monthlySavings, newUser);
   };
 
   // Listen to remote changes from Cloud & local tab BroadcastChannel
@@ -160,6 +186,18 @@ export const FinanceProvider = ({ children }) => {
         if (typeof remoteData.initialBalance === 'number') {
           setInitialBalanceState(remoteData.initialBalance);
           setStoredInitialBalance(remoteData.initialBalance);
+        }
+        if (Array.isArray(remoteData.savingsGoals)) {
+          setSavingsGoals(remoteData.savingsGoals);
+          saveStoredData(KEYS.SAVINGS_GOALS, remoteData.savingsGoals);
+        }
+        if (Array.isArray(remoteData.monthlySavings)) {
+          setMonthlySavings(remoteData.monthlySavings);
+          saveStoredData(KEYS.MONTHLY_SAVINGS, remoteData.monthlySavings);
+        }
+        if (remoteData.user) {
+          setCurrentUser(remoteData.user);
+          setStoredUser(remoteData.user);
         }
 
         setSyncStatus('connected');
@@ -378,6 +416,9 @@ export const FinanceProvider = ({ children }) => {
         // Initial Balance
         initialBalance,
         updateInitialBalance,
+        // User
+        currentUser,
+        updateCurrentUser,
         // Income CRUD
         addIncome,
         editIncome,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useFinance } from './context/FinanceContext';
 import { Navbar } from './components/Navbar';
@@ -19,9 +19,16 @@ import { SecuritySettings } from './components/Settings/SecuritySettings';
 import { SavingsGoals } from './components/Savings/SavingsGoals';
 
 export function AppContent() {
-  const { isAuthenticated } = useAuth();
-  const { activeTab } = useFinance();
+  const { isAuthenticated, setSyncFunction } = useAuth();
+  const { activeTab, updateCurrentUser } = useFinance();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Connect Auth sync function with FinanceContext
+  useEffect(() => {
+    if (updateCurrentUser) {
+      setSyncFunction(updateCurrentUser);
+    }
+  }, [updateCurrentUser, setSyncFunction]);
 
   if (!isAuthenticated) {
     return <LoginModal />;

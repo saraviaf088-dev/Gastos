@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getStoredUser, loginUser, registerUser, updateUserCredentials, deleteUser } from '../utils/storage';
+import { getStoredUser, loginUser, registerUser, updateUserCredentials, deleteUser, setStoredUser } from '../utils/storage';
 
 const AuthContext = createContext();
 
@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(getStoredUser());
   const [authError, setAuthError] = useState('');
+  const [syncUserToCloud, setSyncUserToCloud] = useState(null);
 
   useEffect(() => {
     const sessionAuth = sessionStorage.getItem('finan_authenticated');
@@ -15,13 +16,24 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Method to set the sync function from FinanceContext
+  const setSyncFunction = (fn) => {
+    setSyncUserToCloud(() => fn);
+  };
+
   const login = (identifier, password) => {
     const result = loginUser(identifier, password);
     if (result.success) {
+      const user = getStoredUser();
       setIsAuthenticated(true);
-      setCurrentUser(getStoredUser());
+      setCurrentUser(user);
       sessionStorage.setItem('finan_authenticated', 'true');
       setAuthError('');
+      
+      // Sync user to cloud if function is available
+      if (syncUserToCloud) {
+        syncUserToCloud(user);
+      }
     } else {
       setAuthError(result.message);
     }
@@ -31,10 +43,16 @@ export const AuthProvider = ({ children }) => {
   const register = (identifier, password, name) => {
     const result = registerUser(identifier, password, name);
     if (result.success) {
+      const user = getStoredUser();
       setIsAuthenticated(true);
-      setCurrentUser(getStoredUser());
+      setCurrentUser(user);
       sessionStorage.setItem('finan_authenticated', 'true');
       setAuthError('');
+      
+      // Sync user to cloud if function is available
+      if (syncUserToCloud) {
+        syncUserToCloud(user);
+      }
     } else {
       setAuthError(result.message);
     }
@@ -60,7 +78,13 @@ export const AuthProvider = ({ children }) => {
   const updateCredentials = (identifier, newPassword) => {
     const result = updateUserCredentials(identifier, newPassword);
     if (result.success) {
-      setCurrentUser(getStoredUser());
+      const user = getStoredUser();
+      setCurrentUser(user);
+      
+      // Sync user to cloud if function is available
+      if (syncUserToCloud) {
+        syncUserToCloud(user);
+      }
     }
     return result;
   };
@@ -78,7 +102,8 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateCredentials,
-        setAuthError
+        setAuthError,
+        setSyncFunction
       }}
     >
       {children}
