@@ -1,7 +1,6 @@
 // LocalStorage Keys
 const KEYS = {
-  USERNAME: 'finan_auth_username',
-  PASSWORD: 'finan_auth_password',
+  USER: 'finan_user_data',
   AUTH_STATE: 'finan_is_authenticated',
   INCOMES: 'finan_incomes',
   EXPENSES: 'finan_expenses',
@@ -31,9 +30,8 @@ const DEFAULT_CATEGORIES = [
 
 // Helper to seed initial data if empty
 export const seedInitialData = () => {
-  if (!localStorage.getItem(KEYS.USERNAME)) {
-    localStorage.setItem(KEYS.USERNAME, 'admin');
-    localStorage.setItem(KEYS.PASSWORD, '1234');
+  if (!localStorage.getItem(KEYS.USER)) {
+    // No default user - user must register
   }
 
   if (!localStorage.getItem(KEYS.CATEGORIES)) {
@@ -76,14 +74,121 @@ export const saveStoredData = (key, data) => {
   }
 };
 
-export const getStoredCredentials = () => ({
-  username: localStorage.getItem(KEYS.USERNAME) || 'admin',
-  password: localStorage.getItem(KEYS.PASSWORD) || '1234'
-});
+// User data structure: { email, phone, password, name, createdAt }
+export const getStoredUser = () => {
+  const data = localStorage.getItem(KEYS.USER);
+  return data ? JSON.parse(data) : null;
+};
 
-export const setStoredCredentials = (newUsername, newPassword) => {
-  localStorage.setItem(KEYS.USERNAME, newUsername);
-  localStorage.setItem(KEYS.PASSWORD, newPassword);
+export const setStoredUser = (userData) => {
+  localStorage.setItem(KEYS.USER, JSON.stringify(userData));
+};
+
+// Check if email or phone already exists
+export const userExists = (identifier) => {
+  const user = getStoredUser();
+  if (!user) return false;
+  
+  const normalizedInput = identifier.toLowerCase().trim();
+  const normalizedEmail = user.email ? user.email.toLowerCase().trim() : '';
+  const normalizedPhone = user.phone ? user.phone.trim() : '';
+  
+  return normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
+};
+
+// Register new user
+export const registerUser = (identifier, password, name) => {
+  const existingUser = getStoredUser();
+  if (existingUser) {
+    return { success: false, message: 'Ya existe una cuenta registrada. Elimina la cuenta actual para crear una nueva.' };
+  }
+
+  // Validate identifier (email or phone)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\d\s\-\+\(\)]{7,15}$/;
+  
+  const isEmail = emailRegex.test(identifier);
+  const isPhone = phoneRegex.test(identifier);
+  
+  if (!isEmail && !isPhone) {
+    return { success: false, message: 'Ingresa un correo electrónico o número de celular válido.' };
+  }
+
+  if (password.length < 4) {
+    return { success: false, message: 'La contraseña debe tener al menos 4 caracteres.' };
+  }
+
+  if (name && name.length < 2) {
+    return { success: false, message: 'El nombre debe tener al menos 2 caracteres.' };
+  }
+
+  const userData = {
+    email: isEmail ? identifier : '',
+    phone: isPhone ? identifier : '',
+    password: password,
+    name: name || '',
+    createdAt: new Date().toISOString()
+  };
+
+  setStoredUser(userData);
+  return { success: true, message: 'Cuenta creada correctamente.' };
+};
+
+// Login with identifier and password
+export const loginUser = (identifier, password) => {
+  const user = getStoredUser();
+  if (!user) {
+    return { success: false, message: 'No hay cuenta registrada. Crea una cuenta nueva.' };
+  }
+
+  const normalizedInput = identifier.toLowerCase().trim();
+  const normalizedEmail = user.email ? user.email.toLowerCase().trim() : '';
+  const normalizedPhone = user.phone ? user.phone.trim() : '';
+  
+  const identifierMatch = normalizedInput === normalizedEmail || normalizedInput === normalizedPhone;
+  
+  if (!identifierMatch || password !== user.password) {
+    return { success: false, message: 'Correo/celular o contraseña incorrectos.' };
+  }
+
+  return { success: true, message: 'Inicio de sesión exitoso.' };
+};
+
+// Update user credentials
+export const updateUserCredentials = (identifier, newPassword) => {
+  const user = getStoredUser();
+  if (!user) {
+    return { success: false, message: 'No hay cuenta registrada.' };
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\d\s\-\+\(\)]{7,15}$/;
+  
+  const isEmail = emailRegex.test(identifier);
+  const isPhone = phoneRegex.test(identifier);
+  
+  if (!isEmail && !isPhone) {
+    return { success: false, message: 'Ingresa un correo electrónico o número de celular válido.' };
+  }
+
+  if (newPassword && newPassword.length < 4) {
+    return { success: false, message: 'La contraseña debe tener al menos 4 caracteres.' };
+  }
+
+  const updatedUser = {
+    ...user,
+    email: isEmail ? identifier : user.email,
+    phone: isPhone ? identifier : user.phone,
+    password: newPassword || user.password
+  };
+
+  setStoredUser(updatedUser);
+  return { success: true, message: 'Credenciales actualizadas correctamente.' };
+};
+
+// Delete user account
+export const deleteUser = () => {
+  localStorage.removeItem(KEYS.USER);
 };
 
 export const getStoredInitialBalance = () => {
@@ -100,8 +205,7 @@ export const clearAllData = () => {
   localStorage.removeItem(KEYS.EXPENSES);
   localStorage.removeItem(KEYS.CATEGORIES);
   localStorage.removeItem(KEYS.INITIAL_BALANCE);
-  localStorage.removeItem(KEYS.USERNAME);
-  localStorage.removeItem(KEYS.PASSWORD);
+  localStorage.removeItem(KEYS.USER);
   localStorage.removeItem(KEYS.SAVINGS_GOALS);
   localStorage.removeItem(KEYS.MONTHLY_SAVINGS);
   seedInitialData();

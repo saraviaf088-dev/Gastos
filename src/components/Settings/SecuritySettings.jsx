@@ -4,12 +4,12 @@ import { useFinance } from '../../context/FinanceContext';
 import { exportFullBackupJSON } from '../../utils/exportImport';
 import { clearAllData } from '../../utils/storage';
 import { 
-  KeyRound, Download, Trash2, Lock, Landmark, ShieldCheck, User, Eye, EyeOff
+  KeyRound, Download, Trash2, Lock, Landmark, ShieldCheck, User, Eye, EyeOff, Mail, Phone
 } from 'lucide-react';
 import { formatCurrency, CURRENCY_SYMBOL } from '../../utils/currency';
 
 export const SecuritySettings = () => {
-  const { updateCredentials, currentCredentials } = useAuth();
+  const { updateCredentials, currentUser } = useAuth();
   const { 
     incomes, 
     expenses, 
@@ -18,7 +18,7 @@ export const SecuritySettings = () => {
     updateInitialBalance,
   } = useFinance();
 
-  const [newUsername, setNewUsername] = useState('');
+  const [newIdentifier, setNewIdentifier] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,11 +32,11 @@ export const SecuritySettings = () => {
       setMsg({ type: 'error', text: 'Las contraseñas no coinciden.' });
       return;
     }
-    const usernameToUse = newUsername.trim() || currentCredentials.username;
-    const res = updateCredentials(usernameToUse, newPassword);
+    const identifierToUse = newIdentifier.trim() || currentUser?.email || currentUser?.phone || '';
+    const res = updateCredentials(identifierToUse, newPassword || undefined);
     if (res.success) {
       setMsg({ type: 'success', text: res.message });
-      setNewUsername('');
+      setNewIdentifier('');
       setNewPassword('');
       setConfirmPassword('');
     } else {
@@ -62,6 +62,14 @@ export const SecuritySettings = () => {
     }
   };
 
+  const getUserDisplay = () => {
+    if (!currentUser) return 'No registrado';
+    if (currentUser.email && currentUser.phone) {
+      return `${currentUser.email} / ${currentUser.phone}`;
+    }
+    return currentUser.email || currentUser.phone || 'No configurado';
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -73,6 +81,27 @@ export const SecuritySettings = () => {
         <p className="text-xs text-slate-400 mt-0.5">
           Administra credenciales privadas, saldo inicial y copias de respaldo.
         </p>
+      </div>
+
+      {/* User Info Card */}
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-emerald-500/30 bg-emerald-950/10">
+        <div className="flex items-center space-x-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <User className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Cuenta Actual</h3>
+            <p className="text-xs text-slate-400">
+              {currentUser?.name && <span className="text-emerald-400 font-medium">{currentUser.name} • </span>}
+              {getUserDisplay()}
+            </p>
+          </div>
+        </div>
+        {currentUser?.createdAt && (
+          <p className="text-[10px] text-slate-500">
+            Creada el {new Date(currentUser.createdAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        )}
       </div>
 
       {/* Initial Balance Section */}
@@ -128,28 +157,39 @@ export const SecuritySettings = () => {
           </h3>
 
           <p className="text-xs text-slate-400">
-            Usuario actual: <span className="text-emerald-400 font-medium">{currentCredentials.username}</span>
+            {currentUser?.email && (
+              <span className="flex items-center space-x-1 mb-1">
+                <Mail className="w-3 h-3 text-slate-500" />
+                <span>Correo: <span className="text-emerald-400 font-medium">{currentUser.email}</span></span>
+              </span>
+            )}
+            {currentUser?.phone && (
+              <span className="flex items-center space-x-1">
+                <Phone className="w-3 h-3 text-slate-500" />
+                <span>Celular: <span className="text-emerald-400 font-medium">{currentUser.phone}</span></span>
+              </span>
+            )}
           </p>
 
           <form onSubmit={handleCredentialsSubmit} className="space-y-3 text-xs">
             <div>
-              <label className="block text-slate-400 mb-1">Nuevo Usuario (mínimo 3 caracteres)</label>
+              <label className="block text-slate-400 mb-1">Nuevo Correo o Celular</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="w-3.5 h-3.5 text-slate-500" />
+                  <Mail className="w-3.5 h-3.5 text-slate-500" />
                 </div>
                 <input
                   type="text"
-                  value={newUsername}
-                  onChange={e => setNewUsername(e.target.value)}
-                  placeholder={currentCredentials.username}
+                  value={newIdentifier}
+                  onChange={e => setNewIdentifier(e.target.value)}
+                  placeholder={currentUser?.email || currentUser?.phone || 'correo@ejemplo.com'}
                   className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-white font-medium rounded-xl pl-9 pr-4 py-2.5 text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1">Nueva Contraseña (mínimo 4 caracteres)</label>
+              <label className="block text-slate-400 mb-1">Nueva Contraseña (dejar vacío para no cambiar)</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <KeyRound className="w-3.5 h-3.5 text-slate-500" />
@@ -222,7 +262,7 @@ export const SecuritySettings = () => {
           <div className="pt-4 border-t border-slate-800">
             <h4 className="text-xs font-bold text-rose-400 mb-1">Zona de Riesgo</h4>
             <p className="text-[11px] text-slate-500 mb-3">
-              Esta acción eliminará los registros actuales y restaurará los datos de demostración iniciales.
+              Esta acción eliminará los registros actuales y restaurará los datos iniciales vacíos.
             </p>
             <button
               onClick={handleResetData}

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getStoredCredentials, setStoredCredentials } from '../utils/storage';
+import { getStoredUser, loginUser, registerUser, updateUserCredentials, deleteUser } from '../utils/storage';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentCredentials, setCurrentCredentials] = useState(getStoredCredentials());
+  const [currentUser, setCurrentUser] = useState(getStoredUser());
   const [authError, setAuthError] = useState('');
 
   useEffect(() => {
@@ -15,16 +15,30 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = (username, password) => {
-    if (username === currentCredentials.username && password === currentCredentials.password) {
+  const login = (identifier, password) => {
+    const result = loginUser(identifier, password);
+    if (result.success) {
       setIsAuthenticated(true);
+      setCurrentUser(getStoredUser());
       sessionStorage.setItem('finan_authenticated', 'true');
       setAuthError('');
-      return true;
     } else {
-      setAuthError('Usuario o contraseña incorrectos. Intenta de nuevo.');
-      return false;
+      setAuthError(result.message);
     }
+    return result;
+  };
+
+  const register = (identifier, password, name) => {
+    const result = registerUser(identifier, password, name);
+    if (result.success) {
+      setIsAuthenticated(true);
+      setCurrentUser(getStoredUser());
+      sessionStorage.setItem('finan_authenticated', 'true');
+      setAuthError('');
+    } else {
+      setAuthError(result.message);
+    }
+    return result;
   };
 
   const logout = async () => {
@@ -43,27 +57,28 @@ export const AuthProvider = ({ children }) => {
     window.location.reload();
   };
 
-  const updateCredentials = (newUsername, newPassword) => {
-    if (!newUsername || newUsername.length < 3) {
-      return { success: false, message: 'El usuario debe tener al menos 3 caracteres.' };
+  const updateCredentials = (identifier, newPassword) => {
+    const result = updateUserCredentials(identifier, newPassword);
+    if (result.success) {
+      setCurrentUser(getStoredUser());
     }
-    if (!newPassword || newPassword.length < 4) {
-      return { success: false, message: 'La contraseña debe tener al menos 4 caracteres.' };
-    }
-    setStoredCredentials(newUsername, newPassword);
-    setCurrentCredentials({ username: newUsername, password: newPassword });
-    return { success: true, message: 'Credenciales actualizadas correctamente.' };
+    return result;
   };
+
+  const hasAccount = currentUser !== null;
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
         authError,
+        currentUser,
+        hasAccount,
         login,
+        register,
         logout,
         updateCredentials,
-        currentCredentials
+        setAuthError
       }}
     >
       {children}
