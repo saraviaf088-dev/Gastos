@@ -1,31 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { KeyRound, ArrowRight, Lock, CheckCircle2 } from 'lucide-react';
+import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export const LoginModal = () => {
-  const { login, pinError } = useAuth();
-  const [pinInput, setPinInput] = useState('');
+  const { login, authError } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (pinInput.trim()) {
-      login(pinInput);
+    if (username.trim() && password.trim()) {
+      login(username, password);
     }
-  };
-
-  const handleKeypad = (num) => {
-    if (pinInput.length < 6) {
-      setPinInput(prev => prev + num);
-    }
-  };
-
-  const handleBackspace = () => {
-    setPinInput(prev => prev.slice(0, -1));
-  };
-
-  const handleQuickDemoPin = () => {
-    setPinInput('1234');
-    login('1234');
   };
 
   return (
@@ -42,75 +29,65 @@ export const LoginModal = () => {
           </div>
           <h2 className="text-2xl font-extrabold text-white tracking-tight">Acceso Privado</h2>
           <p className="text-sm text-slate-400 mt-1">
-            Ingresa tu PIN personal para acceder a tu planificador de gastos
+            Ingresa tus credenciales personales para acceder a tu planificador de gastos
           </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           <div>
+            <label className="block text-xs text-slate-400 mb-1.5 font-medium">Usuario</label>
             <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <User className="w-4 h-4 text-slate-500" />
+              </div>
               <input
-                type="password"
-                maxLength={6}
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="****"
-                className="w-full text-center text-3xl font-extrabold tracking-widest bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-emerald-400 py-3.5 rounded-2xl transition"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Tu usuario"
+                className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-4 py-3 rounded-xl transition text-sm font-medium"
                 autoFocus
               />
             </div>
-            {pinError && (
-              <p className="text-xs text-rose-400 text-center mt-2 font-medium">
-                {pinError}
-              </p>
-            )}
           </div>
 
-          {/* Numeric Keypad */}
-          <div className="grid grid-cols-3 gap-3">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5 font-medium">Contraseña</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <Lock className="w-4 h-4 text-slate-500" />
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Tu contraseña"
+                className="w-full bg-slate-900/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 text-white pl-10 pr-12 py-3 rounded-xl transition text-sm font-medium"
+              />
               <button
-                key={num}
                 type="button"
-                onClick={() => handleKeypad(num)}
-                className="py-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-xl text-slate-200 active:scale-95 transition"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition"
               >
-                {num}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={handleBackspace}
-              className="py-3 bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800/80 text-sm font-semibold rounded-xl text-slate-400 active:scale-95 transition"
-            >
-              Borrar
-            </button>
-            <button
-              type="button"
-              onClick={() => handleKeypad('0')}
-              className="py-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-xl text-slate-200 active:scale-95 transition"
-            >
-              0
-            </button>
-            <button
-              type="submit"
-              className="py-3 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center active:scale-95 transition"
-            >
-              <ArrowRight className="w-6 h-6 stroke-[3]" />
-            </button>
+            </div>
           </div>
 
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={handleQuickDemoPin}
-              className="w-full text-xs text-slate-400 hover:text-emerald-400 py-2 border border-slate-800 rounded-xl bg-slate-900/40 transition flex items-center justify-center space-x-1.5"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Ingresar con PIN de demostración (1234)</span>
-            </button>
-          </div>
+          {authError && (
+            <p className="text-xs text-rose-400 text-center font-medium">
+              {authError}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition"
+          >
+            <span>Iniciar Sesión</span>
+            <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+          </button>
         </form>
 
         <div className="mt-6 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-500">

@@ -1,6 +1,7 @@
 // LocalStorage Keys
 const KEYS = {
-  PIN: 'finan_auth_pin',
+  USERNAME: 'finan_auth_username',
+  PASSWORD: 'finan_auth_password',
   AUTH_STATE: 'finan_is_authenticated',
   INCOMES: 'finan_incomes',
   EXPENSES: 'finan_expenses',
@@ -31,8 +32,9 @@ export const seedInitialData = () => {
   const existingExpenses = localStorage.getItem(KEYS.EXPENSES);
   const existingIncomes = localStorage.getItem(KEYS.INCOMES);
   
-  if (!localStorage.getItem(KEYS.PIN)) {
-    localStorage.setItem(KEYS.PIN, '1234'); // Default PIN 1234
+  if (!localStorage.getItem(KEYS.USERNAME)) {
+    localStorage.setItem(KEYS.USERNAME, 'admin'); // Default username
+    localStorage.setItem(KEYS.PASSWORD, '1234'); // Default password
   }
 
   if (!localStorage.getItem(KEYS.CATEGORIES)) {
@@ -178,8 +180,15 @@ export const saveStoredData = (key, data) => {
   }
 };
 
-export const getStoredPin = () => localStorage.getItem(KEYS.PIN) || '1234';
-export const setStoredPin = (newPin) => localStorage.setItem(KEYS.PIN, newPin);
+export const getStoredCredentials = () => ({
+  username: localStorage.getItem(KEYS.USERNAME) || 'admin',
+  password: localStorage.getItem(KEYS.PASSWORD) || '1234'
+});
+
+export const setStoredCredentials = (newUsername, newPassword) => {
+  localStorage.setItem(KEYS.USERNAME, newUsername);
+  localStorage.setItem(KEYS.PASSWORD, newPassword);
+};
 
 export const getStoredInitialBalance = () => {
   const val = localStorage.getItem(KEYS.INITIAL_BALANCE);
@@ -195,6 +204,8 @@ export const clearAllData = () => {
   localStorage.removeItem(KEYS.EXPENSES);
   localStorage.removeItem(KEYS.CATEGORIES);
   localStorage.removeItem(KEYS.INITIAL_BALANCE);
+  localStorage.removeItem(KEYS.USERNAME);
+  localStorage.removeItem(KEYS.PASSWORD);
   seedInitialData();
 };
 

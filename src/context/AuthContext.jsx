@@ -1,29 +1,28 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getStoredPin, setStoredPin } from '../utils/storage';
+import { getStoredCredentials, setStoredCredentials } from '../utils/storage';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentPin, setCurrentPin] = useState(getStoredPin());
-  const [pinError, setPinError] = useState('');
+  const [currentCredentials, setCurrentCredentials] = useState(getStoredCredentials());
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
-    // Check if session was unlocked previously
     const sessionAuth = sessionStorage.getItem('finan_authenticated');
     if (sessionAuth === 'true') {
       setIsAuthenticated(true);
     }
   }, []);
 
-  const login = (pinInput) => {
-    if (pinInput === currentPin) {
+  const login = (username, password) => {
+    if (username === currentCredentials.username && password === currentCredentials.password) {
       setIsAuthenticated(true);
       sessionStorage.setItem('finan_authenticated', 'true');
-      setPinError('');
+      setAuthError('');
       return true;
     } else {
-      setPinError('Código PIN incorrecto. Intenta de nuevo.');
+      setAuthError('Usuario o contraseña incorrectos. Intenta de nuevo.');
       return false;
     }
   };
@@ -32,7 +31,6 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('finan_authenticated');
 
-    // Clean browser caches if Cache API is available
     if ('caches' in window) {
       try {
         const cacheNames = await caches.keys();
@@ -42,28 +40,30 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // Hard reload page to clear memory state and fetch fresh assets
     window.location.reload();
   };
 
-  const updatePin = (newPin) => {
-    if (!newPin || newPin.length < 4) {
-      return { success: false, message: 'El PIN debe tener al menos 4 dígitos.' };
+  const updateCredentials = (newUsername, newPassword) => {
+    if (!newUsername || newUsername.length < 3) {
+      return { success: false, message: 'El usuario debe tener al menos 3 caracteres.' };
     }
-    setStoredPin(newPin);
-    setCurrentPin(newPin);
-    return { success: true, message: 'PIN de acceso actualizado correctamente.' };
+    if (!newPassword || newPassword.length < 4) {
+      return { success: false, message: 'La contraseña debe tener al menos 4 caracteres.' };
+    }
+    setStoredCredentials(newUsername, newPassword);
+    setCurrentCredentials({ username: newUsername, password: newPassword });
+    return { success: true, message: 'Credenciales actualizadas correctamente.' };
   };
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
-        pinError,
+        authError,
         login,
         logout,
-        updatePin,
-        currentPin
+        updateCredentials,
+        currentCredentials
       }}
     >
       {children}

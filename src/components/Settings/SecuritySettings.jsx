@@ -4,12 +4,12 @@ import { useFinance } from '../../context/FinanceContext';
 import { exportFullBackupJSON } from '../../utils/exportImport';
 import { clearAllData } from '../../utils/storage';
 import { 
-  KeyRound, Download, Trash2, Lock, Landmark, ShieldCheck
+  KeyRound, Download, Trash2, Lock, Landmark, ShieldCheck, User, Eye, EyeOff
 } from 'lucide-react';
 import { formatCurrency, CURRENCY_SYMBOL } from '../../utils/currency';
 
 export const SecuritySettings = () => {
-  const { updatePin } = useAuth();
+  const { updateCredentials, currentCredentials } = useAuth();
   const { 
     incomes, 
     expenses, 
@@ -18,23 +18,27 @@ export const SecuritySettings = () => {
     updateInitialBalance,
   } = useFinance();
 
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState(null);
   const [balanceInput, setBalanceInput] = useState(initialBalance.toString());
   const [balanceMsg, setBalanceMsg] = useState(null);
 
-  const handlePinChangeSubmit = (e) => {
+  const handleCredentialsSubmit = (e) => {
     e.preventDefault();
-    if (newPin !== confirmPin) {
-      setMsg({ type: 'error', text: 'Los códigos PIN no coinciden.' });
+    if (newPassword !== confirmPassword) {
+      setMsg({ type: 'error', text: 'Las contraseñas no coinciden.' });
       return;
     }
-    const res = updatePin(newPin);
+    const usernameToUse = newUsername.trim() || currentCredentials.username;
+    const res = updateCredentials(usernameToUse, newPassword);
     if (res.success) {
       setMsg({ type: 'success', text: res.message });
-      setNewPin('');
-      setConfirmPin('');
+      setNewUsername('');
+      setNewPassword('');
+      setConfirmPassword('');
     } else {
       setMsg({ type: 'error', text: res.message });
     }
@@ -116,36 +120,71 @@ export const SecuritySettings = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* PIN Change Form */}
+        {/* Credentials Change Form */}
         <div className="glass-panel rounded-2xl p-4 sm:p-6 space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-            <KeyRound className="w-4 h-4 text-emerald-400" />
-            <span>Cambiar PIN de Acceso Privado</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Cambiar Credenciales de Acceso</span>
           </h3>
 
-          <form onSubmit={handlePinChangeSubmit} className="space-y-3 text-xs">
+          <p className="text-xs text-slate-400">
+            Usuario actual: <span className="text-emerald-400 font-medium">{currentCredentials.username}</span>
+          </p>
+
+          <form onSubmit={handleCredentialsSubmit} className="space-y-3 text-xs">
             <div>
-              <label className="block text-slate-400 mb-1">Nuevo PIN (mínimo 4 dígitos)</label>
-              <input
-                type="password"
-                maxLength={6}
-                value={newPin}
-                onChange={e => setNewPin(e.target.value)}
-                placeholder="****"
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-emerald-400 font-bold rounded-xl px-4 py-2.5 text-base tracking-widest"
-              />
+              <label className="block text-slate-400 mb-1">Nuevo Usuario (mínimo 3 caracteres)</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                </div>
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={e => setNewUsername(e.target.value)}
+                  placeholder={currentCredentials.username}
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-white font-medium rounded-xl pl-9 pr-4 py-2.5 text-sm"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1">Confirmar Nuevo PIN</label>
-              <input
-                type="password"
-                maxLength={6}
-                value={confirmPin}
-                onChange={e => setConfirmPin(e.target.value)}
-                placeholder="****"
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-emerald-400 font-bold rounded-xl px-4 py-2.5 text-base tracking-widest"
-              />
+              <label className="block text-slate-400 mb-1">Nueva Contraseña (mínimo 4 caracteres)</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-white font-medium rounded-xl pl-9 pr-10 py-2.5 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition"
+                >
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-400 mb-1">Confirmar Nueva Contraseña</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-white font-medium rounded-xl pl-9 pr-4 py-2.5 text-sm"
+                />
+              </div>
             </div>
 
             {msg && (
@@ -158,7 +197,7 @@ export const SecuritySettings = () => {
               type="submit"
               className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold transition text-xs mt-2"
             >
-              Actualizar Clave PIN
+              Actualizar Credenciales
             </button>
           </form>
         </div>
